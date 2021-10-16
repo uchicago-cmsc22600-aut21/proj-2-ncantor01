@@ -74,7 +74,7 @@
 %let lcLetter = [a-z];
 %let letter = {ucLetter}|{lcLetter};
 %let dig = [0-9];
-%let idchar = {letter}|{dig}|"_"|"'";
+%let idchar = {letter}|{dig}|"_";
 %let ucId = {ucLetter}{idchar}*;
 %let lcId = {lcLetter}{idchar}*;
 %let esc = "\\"[nrt\\\"]|"\\"{dig}{dig}{dig};
@@ -140,7 +140,7 @@
                               ]);
                             continue());
 <STRING> {eol}          => (lexErr((!startPos, yypos), [
-                                "unclosed string at end of file"
+                                "unclosed string at end of line"
                               ]);
                             YYBEGIN INITIAL; mkString());
 <STRING> .              => (lexErr((yypos, yypos), [
