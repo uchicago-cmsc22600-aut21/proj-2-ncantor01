@@ -1,0 +1,76 @@
+(* mll.grm
+ *
+ * COPYRIGHT (c) 2021 John Reppy (http://cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *
+ * Sample code
+ * CMSC 22600
+ * Autumn 2021
+ * University of Chicago
+ *
+ * ML-Antlr specification for ML Lite.
+ *)
+
+%name MLL;
+
+%defs (
+  structure PT = ParseTree
+  structure Op = OpNames
+
+  type pos = Error.pos
+
+  (* YOUR CODE HERE *)
+);
+
+(* MLL tokens *)
+%tokens
+    : KW_case           ("case")
+    | KW_data           ("data")
+    | KW_else           ("else")
+    | KW_end            ("end")
+    | KW_fun            ("fun")
+    | KW_if             ("if")
+    | KW_let            ("let")
+    | KW_of             ("of")
+    | KW_then           ("then")
+    | LP                ("(")
+    | RP                (")")
+    | LB                ("[")
+    | RB                ("]")
+    | LCB               ("{")
+    | RCB               ("}")
+    | ASSIGN            (":=")
+    | ORELSE            ("||")
+    | ANDALSO           ("&&")
+    | EQEQ              ("==")
+    | NEQ               ("!=")
+    | LTEQ              ("<=")
+    | LT                ("<")
+    | CONS              ("::")
+    | CONCAT            ("^")
+    | PLUS              ("+")
+    | MINUS             ("-")
+    | TIMES             ("*")
+    | DIV               ("/")
+    | MOD               ("%")
+    | DEREF             ("!")
+    | EQ                ("=")
+    | COMMA             (",")
+    | SEMI              (";")
+    | BAR               ("|")
+    | ARROW             ("->")
+    | DARROW            ("=>")
+    | WILD              ("_")
+    | UID of Atom.atom
+    | LID of Atom.atom
+    | NUMBER of IntInf.int
+    | STRING of string
+    ;
+
+%start Program;
+
+(* REPLACE WITH YOUR GRAMMAR *)
+Program
+        :
+                => (PT.Prog([], PT.ExpInt 0))
+        ;
