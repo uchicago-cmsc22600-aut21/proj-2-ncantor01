@@ -69,8 +69,11 @@
 
 %start Program;
 
-(* REPLACE WITH YOUR GRAMMAR *)
 Program
-        :
-                => (PT.Prog([], PT.ExpInt 0))
+        : Exp
+        : TopDcl ( ";" Program =>  )
+        :       => (PT.Prog([], PT.ExpInt 0))
         ;
+
+TopDcl
+        : "data" UID
