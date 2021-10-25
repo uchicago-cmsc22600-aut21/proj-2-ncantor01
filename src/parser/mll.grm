@@ -19,7 +19,6 @@
 
   type pos = Error.pos
 
-  (* YOUR CODE HERE *)
 );
 
 (* MLL tokens *)
@@ -70,10 +69,123 @@
 %start Program;
 
 Program
-        : Exp
-        : TopDcl ( ";" Program =>  )
-        :       => (PT.Prog([], PT.ExpInt 0))
+        : (TopDcl ";")* Exp => ()
         ;
 
 TopDcl
-        : "data" UID
+        : "data" UID TyParams? "=" ConDcl ( "|" ConDcl => ( ConDcl ))* 
+            => (case TyParams of
+                SOME a => ( PT.DclData( UID, a, List.concat( [ConDcl :: [], SR] ) ) )
+                | NONE => ( PT.DclData( UID, [], List.concat( [ConDcl :: [], SR] ) ) ) )
+                (*END OF CASE*)
+        | ValBind
+        ;
+
+TyParams 
+        : "[" LID  ("," LID => ( LID ))* "]" => ( List.concat ([LID :: [], SR]) )
+        ;
+
+ConDcl 
+        : UID ( "of" Type )? => ( PT.Con( UID, SR ) )
+        ;
+
+Type
+        : AtomicTypeList ( "->" AtomicTypeList => (AtomicTypeList) )* 
+            => ( case SR of
+                [] => (AtomicTypeList)
+              | _  => (list.foldl ( fn ( left, right ) => PT.TyFun ( left, right ) ) AtomicTypeList SR  ) )
+        ;
+
+AtomicTypeList        
+        : AtomicType ( "*" AtomicType => ( AtomicType ) )* =>
+            ( case SR of
+                [] => ( PT.TyVar AtomicType )
+              | _  => ( PT.TyTuple ( List.concat( [AtomicType :: [], SR] ) ) ) )
+        ;
+
+AtomicType
+        : UID TyArgs?
+            => (case TyArgs of
+                SOME a => ( PT.TyCon( UID, a ) )
+                | NONE => ( PT.TyVar( UID ) ) )
+                (*END OF CASE*) 
+        | LID => ( PT.TyVar( LID ) )
+        | "(" Type ")" => ( Type )
+        ;
+
+TyArgs 
+        : "[" Type ("," Type => ( Type ))* "]" => ()
+        ;
+                                                                        
+ValBind
+        : "let" AtomicPat "=" Exp => ()
+        | "fun" LID AtomicPat+ "=" Exp => ()
+        | Exp => (PT.BindExp( Exp ))
+        ;
+
+Pat
+        : UID SimplePat? => ()
+        | SimplePat "::" SimplePat => ()
+        | AtomicPat => ()
+        ;
+
+AtomicPat
+        : "(" SimplePat ("," SimplePat => ( SimplePat ) )* ")" => ()
+        | SimplePat
+        ;
+
+SimplePat
+        : LID => ()
+        ;
+
+Exp
+        : "if" Exp "then" Exp "else" Exp => (PT.ExpIf (Exp1, Exp2, Exp3))
+        | OpExp (":=" OpExp => (OpExp))? => ()
+        ;
+
+OpExp 
+        : OpExp1 ( "||" OpExp1 => ("||", OpExp1)
+                | "&&" OpExp1 => ("&&", OpExp1)
+                | "==" OpExp1 => ("==", OpExp1)
+                | "!=" OpExp1 => ("!=", OpExp1)
+                | "<"  OpExp1 => ("<" , OpExp1)
+                | "<=" OpExp1 => ("<=", OpExp1)
+                | "::" OpExp1 => ("::", OpExp1)
+                | "^"  OpExp1 => ("^" , OpExp1)
+                | "+"  OpExp1 => ("+" , OpExp1)
+                | "-"  OpExp1 => ("-" , OpExp1)
+                | "*"  OpExp1 => ("*" , OpExp1)
+                | "/"  OpExp1 => ("/" , OpExp1)
+                | "%"  OpExp1 => ("%" , OpExp1))* => ()
+        ;
+
+OpExp1
+        : "-" ApplyExp => ()
+        | "!" ApplyExp => ()
+        | ApplyExp     => ()
+        ;
+
+
+ApplyExp
+        : AtomicExp (AtomicExp)* => ()
+        ;
+
+
+AtomicExp
+        : UID => ()
+        | LID => ()
+        | STRING => ()
+        | NUMBER => ()
+        | "(" ( Exp ("," Exp => (Exp))* )+")" => ()
+        | "{" Scope "}" => ()
+        | "case" Exp "of" MatchCase => ()
+        ;  
+
+Scope 
+        : ("(" (ValBind ";" => (ValBind) )* ")")* Exp => (PT.scope(SR, Exp))
+        ;
+
+MatchCase
+        : "{" Pat "=>" Scope "}" => ()
+        ;
+
