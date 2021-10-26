@@ -66,10 +66,18 @@
     | STRING of string
     ;
 
-%start Program;
+%start PreProg;
 
-Program
-        : (TopDcl ";")* Exp => ()
+PreProg
+        : Program@([])
+        ;
+
+Program(env)
+        (*This Exp is a Valbind*)
+        : Exp (";" Program@(PT.BindExp Exp :: env))? => (case SR of
+                        NONE => (PT.ProgMark (FULL_SPAN, PT.Prog (env, Exp) ))
+                        SOME a => () )
+        | TopDcl ";" Program@(TopDcl :: env)=> ()
         ;
 
 TopDcl
@@ -86,7 +94,7 @@ TyParams
         ;
 
 ConDcl 
-        : UID ( "of" Type )? => ( PT.Con( UID, SR ) )
+        : UID ( "of" Type )? => ( PT.ConMark({span : "CON_SPAN", tree : PT.Con( UID, SR )} ) )
         ;
 
 Type
@@ -120,7 +128,6 @@ TyArgs
 ValBind
         : "let" AtomicPat "=" Exp => ()
         | "fun" LID AtomicPat+ "=" Exp => ()
-        | Exp => (PT.BindExp( Exp ))
         ;
 
 Pat
@@ -144,30 +151,43 @@ Exp
         ;
 
 OpExp 
-        : OpExp1 ( "||" OpExp1 => ("||", OpExp1)
-                | "&&" OpExp1 => ("&&", OpExp1)
-                | "==" OpExp1 => ("==", OpExp1)
-                | "!=" OpExp1 => ("!=", OpExp1)
-                | "<"  OpExp1 => ("<" , OpExp1)
-                | "<=" OpExp1 => ("<=", OpExp1)
-                | "::" OpExp1 => ("::", OpExp1)
-                | "^"  OpExp1 => ("^" , OpExp1)
-                | "+"  OpExp1 => ("+" , OpExp1)
-                | "-"  OpExp1 => ("-" , OpExp1)
-                | "*"  OpExp1 => ("*" , OpExp1)
-                | "/"  OpExp1 => ("/" , OpExp1)
-                | "%"  OpExp1 => ("%" , OpExp1))* => ()
+        : OpExp1 ( "||" OpExp1 => ( ("||", OpExp1) )
+                | "&&" OpExp1 => ( ("&&", OpExp1) ))* => ()
         ;
 
 OpExp1
-        : "-" ApplyExp => ()
-        | "!" ApplyExp => ()
+        : OpExp2 ( "==" OpExp2 => ( ("==", OpExp2) )
+                | "!=" OpExp2 => ( ("!=", OpExp2) )
+                | "<"  OpExp2 => ( ("<" , OpExp2) )
+                | "<=" OpExp2 => ( ("<=", OpExp2) ))* => ()
+        ;
+
+OpExp2
+        : OpExp3 ( "::" OpExp3 => ( ("::", OpExp3) ))* => ()
+        ;
+
+OpExp3
+        : OpExp4 ( "^"  OpExp4 => ( ("^" , OpExp4) )
+                | "+"  OpExp4 => ( ("+" , OpExp4) )
+             (*On second minus we know there is a binop and a unop*) 
+                | "-" ("-")?  OpExp4 => ( ("-" , OpExp4) ))* => ()
+        ;
+
+OpExp4
+        : OpExp5 ( "*"  OpExp5 => ( ("*" , OpExp5) )
+                | "/"  OpExp5 => ( ("/" , OpExp5) )
+                | "%"  OpExp5 => ( ("%" , OpExp5) ))* => ()
+        ;
+
+OpExp5
+        : "!" ApplyExp => ()
         | ApplyExp     => ()
         ;
 
 
 ApplyExp
-        : AtomicExp (AtomicExp)* => ()
+        : AtomicExp => ()
+        | ApplyExp AtomicExp => ()
         ;
 
 
@@ -178,11 +198,13 @@ AtomicExp
         | NUMBER => ()
         | "(" ( Exp ("," Exp => (Exp))* )+")" => ()
         | "{" Scope "}" => ()
-        | "case" Exp "of" MatchCase => ()
+        | "case" Exp "of" (MatchCase)+ => ()
         ;  
 
 Scope 
-        : ("(" (ValBind ";" => (ValBind) )* ")")* Exp => (PT.scope(SR, Exp))
+        (*This Exp is a Valbind*)
+        : Exp (";" Exp)? => () 
+        | ValBind ";" Scope => (PT.scope(SR, Exp))
         ;
 
 MatchCase
