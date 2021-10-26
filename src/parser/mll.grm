@@ -75,7 +75,7 @@ PreProg
 Program(env)
         (*This Exp is a Valbind*)
         : Exp (";" Program@(PT.BindExp Exp :: env))? => (case SR of
-                        NONE => (PT.ProgMark (FULL_SPAN, PT.Prog (env, Exp) ))
+                        NONE => (PT.ProgMark (span = FULL_SPAN, tree = PT.Prog (env, Exp) ))
                         SOME a => () )
         | TopDcl ";" Program@(TopDcl :: env)=> ()
         ;
@@ -83,66 +83,71 @@ Program(env)
 TopDcl
         : "data" UID TyParams? "=" ConDcl ( "|" ConDcl => ( ConDcl ))* 
             => (case TyParams of
-                SOME a => ( PT.DclData( UID, a, List.concat( [ConDcl :: [], SR] ) ) )
-                | NONE => ( PT.DclData( UID, [], List.concat( [ConDcl :: [], SR] ) ) ) )
+                SOME a => ( PT.DclMark ( span = TopDcl_SPAN, tree = PT.DclData( UID, a, ConDcl :: SR ) ) ) 
+                | NONE => ( PT.DclMark ( span = TopDcl_SPAN, tree = PT.DclData( UID, [], ConDcl :: SR  ) ) )
                 (*END OF CASE*)
         | ValBind
         ;
 
 TyParams 
-        : "[" LID  ("," LID => ( LID ))* "]" => ( List.concat ([LID :: [], SR]) )
+        : "[" LID  ("," LID => ( LID ))* "]" => ( LID :: SR )
         ;
 
 ConDcl 
-        : UID ( "of" Type )? => ( PT.ConMark({span : "CON_SPAN", tree : PT.Con( UID, SR )} ) )
+        : UID ( "of" Type )? => ( PT.ConMark( ConDcl_SPAN, PT.Con( UID, SR ) ) )
         ;
 
 Type
         : AtomicTypeList ( "->" AtomicTypeList => (AtomicTypeList) )* 
             => ( case SR of
                 [] => (AtomicTypeList)
-              | _  => (list.foldl ( fn ( left, right ) => PT.TyFun ( left, right ) ) AtomicTypeList SR  ) )
+              | _  => (PT.TyMark (span = Type_SPAN, 
+                                  tree = (list.foldl ( fn ( left, right ) 
+                                            => PT.TyFun ( left, right ) ) AtomicTypeList SR  ) ) ) )
         ;
 
 AtomicTypeList        
         : AtomicType ( "*" AtomicType => ( AtomicType ) )* =>
             ( case SR of
-                [] => ( PT.TyVar AtomicType )
-              | _  => ( PT.TyTuple ( List.concat( [AtomicType :: [], SR] ) ) ) )
+                [] => ( PT.TyMark ( span = AtomicTypeList_SPAN, tree = PT.TyVar AtomicType ) )
+              | _  => ( PT.TyMark ( span = AtomicTypeList_SPAN, tree = PT.TyTuple AtomicType :: SR ) ) )
         ;
 
 AtomicType
         : UID TyArgs?
             => (case TyArgs of
-                SOME a => ( PT.TyCon( UID, a ) )
-                | NONE => ( PT.TyVar( UID ) ) )
+                SOME a => ( PT.TyMark ( span = AtomicType_SPAN, tree = PT.TyCon( UID, a ) ) )
+                | NONE => ( PT.TyMark ( span = AtomicType_SPAN, tree = PT.TyVar( UID ) ) ) )
                 (*END OF CASE*) 
-        | LID => ( PT.TyVar( LID ) )
+        | LID => ( PT.TyMark ( span = AtomicType_SPAN, tree = PT.TyVar( LID ) ) )
         | "(" Type ")" => ( Type )
         ;
 
 TyArgs 
-        : "[" Type ("," Type => ( Type ))* "]" => ()
+        : "[" Type ("," Type => ( Type ))* "]" => (Type :: SR)
         ;
                                                                         
 ValBind
-        : "let" AtomicPat "=" Exp => ()
-        | "fun" LID AtomicPat+ "=" Exp => ()
+        : "let" AtomicPat "=" Exp 
+                    => ( PT.BindMark ( span = ValBind_SPAN, tree = PT.BindVal ( AtomicPat, Exp )) ) 
+        | "fun" LID AtomicPat+ "=" Exp 
+                    => ( PT.BindMark ( span = ValBind_SPAN, tree = PT.BindFun ( LID, AtomicPat, Exp ) ) )
         ;
 
 Pat
-        : UID SimplePat? => ()
+        : UID SimplePat? => ( PT.PatMark (  ) )
         | SimplePat "::" SimplePat => ()
         | AtomicPat => ()
         ;
 
 AtomicPat
-        : "(" SimplePat ("," SimplePat => ( SimplePat ) )* ")" => ()
-        | SimplePat
+        : "(" SimplePat ("," SimplePat => ( SimplePat ) )* ")" 
+                    => ( PT.PatMark ( span = AtomicPat_SPAN, tree = PT.PatTuple ( SR ) ) )
+        | SimplePat => ( PT.PatMark ( span = AtomicPat_SPAN, tree = PT.PatVar (SimplePat) ) )
         ;
 
 SimplePat
-        : LID => ()
+        : LID => 
         ;
 
 Exp
