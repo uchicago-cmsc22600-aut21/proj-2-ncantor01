@@ -81,10 +81,10 @@ Program(env)
         ;
 
 TopDcl
-        : "data" UID TyParams? "=" ConDcl ( "|" ConDcl => ( ConDcl ))* 
-            => (case TyParams of
+        : "data" UID TyParams? "=" ConDcl ( "|" ConDcl => ( ConDcl ))*
+        => (case TyParams of
                 SOME a => ( PT.DclMark ( span = TopDcl_SPAN, tree = PT.DclData( UID, a, ConDcl :: SR ) ) ) 
-                | NONE => ( PT.DclMark ( span = TopDcl_SPAN, tree = PT.DclData( UID, [], ConDcl :: SR  ) ) )
+                | NONE => ( PT.DclMark ( span = TopDcl_SPAN, tree = PT.DclData( UID, [], ConDcl :: SR  ) ) ) )
                 (*END OF CASE*)
         | ValBind
         ;
@@ -135,8 +135,10 @@ ValBind
         ;
 
 Pat
-        : UID SimplePat? => ( PT.PatMark (  ) )
-        | SimplePat "::" SimplePat => ()
+        : UID SimplePat? 
+                => ( PT.PatMark ( span = Pat_SPAN, tree = PT.PatCon ( UID, SimplePat ) ) )
+        | SimplePat "::" SimplePat 
+                => ( PT.PatMark ( span = Pat_SPAN, tree = PT.PatListCons ( SimplePat1, SimplePat2 ) ) )
         | AtomicPat => ()
         ;
 
@@ -147,7 +149,7 @@ AtomicPat
         ;
 
 SimplePat
-        : LID => 
+        : LID
         ;
 
 Exp
@@ -191,28 +193,35 @@ OpExp5
 
 
 ApplyExp
-        : AtomicExp => ()
-        | ApplyExp AtomicExp => ()
+        : AtomicExp (AtomicExp)* => ( PT.ExpMark ( span = FULL_SPAN, tree = PT.ExpTuple (AtomicExp :: SR) ) )
         ;
 
 
 AtomicExp
-        : UID => ()
-        | LID => ()
-        | STRING => ()
-        | NUMBER => ()
-        | "(" ( Exp ("," Exp => (Exp))* )+")" => ()
-        | "{" Scope "}" => ()
-        | "case" Exp "of" (MatchCase)+ => ()
+        : UID => (PT.ExpCon UID)
+        | LID => (PT.ExpVar LID)
+        | STRING => (PT.ExpStr STRING)
+        | NUMBER => (PT.ExpInt NUMBER)
+        | "(" ( Exp ("," Exp => (Exp))* => (Exp :: SR) )? ")" 
+                    => ( case SR of
+                        NONE => PT.ExpMark ( span = AtomicExp_SPAN, tree =  PT.ExpTuple ([]) )
+                        | SOME a => (case ( List.length a ) of
+                                     1 => a 
+                                     | _ => PT.ExpMark ( span = AtomicExp_SPAN, tree = PT.ExpTuple ( a ) ) ) )
+        | "{" Scope@([]) "}" => ( PT.ExpMark ( span = AtomicExp_SPAN, tree = PT.ExpScope Scope ) )
+        | "case" Exp "of" (MatchCase)+ "end" => ( PT.ExpMark ( span = AtomicExp_SPAN, tree = PT.ExpCase ( Exp, SR ) ) )
         ;  
 
-Scope 
-        (*This Exp is a Valbind*)
-        : Exp (";" Exp)? => () 
-        | ValBind ";" Scope => (PT.scope(SR, Exp))
+Scope(env) 
+        (*This Exp is a Valbind if there is a scope after it*)
+        : Exp ( ";" Scope@( PT.BindMark ( span = Exp_SPAN, tree = PT.BindExp Exp ) :: env ) )? 
+                => ( case SR of
+                   SOME a => 
+                   | NONE => ( env, Exp ) ) 
+        | ValBind ";" Scope@(ValBind :: env)
         ;
 
 MatchCase
-        : "{" Pat "=>" Scope "}" => ()
+        : "{" Pat "=>" Scope@([]) "}" => ()
         ;
 
