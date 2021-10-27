@@ -232,8 +232,8 @@ fun OpExp_PROD_1_ACT (SR, OpExp1, SR_SPAN : (Lex.pos * Lex.pos), OpExp1_SPAN : (
   (PT.ExpMark { span = FULL_SPAN, 
                                     tree = ( List.foldl ( fn ( (op', left), right ) 
                                         => (case op' of
-                                            "||" => PT.ExpMark { span = OpExp1_SPAN, tree = PT.ExpOrElse (right, left) }
-                                          | "&&" => PT.ExpMark { span = OpExp1_SPAN, tree = PT.ExpAndAlso (right, left) }
+                                            "||" => PT.ExpMark { span = FULL_SPAN, tree = PT.ExpOrElse (right, left) }
+                                          | "&&" => PT.ExpMark { span = FULL_SPAN, tree = PT.ExpAndAlso (right, left) }
                                           |  _   => PT.ExpInt 0)  )
                                         OpExp1 SR   ) } )
 fun OpExp1_PROD_1_SUBRULE_1_PROD_1_ACT (EQEQ, OpExp2, EQEQ_SPAN : (Lex.pos * Lex.pos), OpExp2_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
@@ -247,13 +247,13 @@ fun OpExp1_PROD_1_SUBRULE_1_PROD_4_ACT (LTEQ, OpExp2, LTEQ_SPAN : (Lex.pos * Lex
 fun OpExp1_PROD_1_ACT (SR, OpExp2, SR_SPAN : (Lex.pos * Lex.pos), OpExp2_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   (PT.ExpMark { span = FULL_SPAN, 
                                       tree = ( List.foldl ( fn ( (op', left) , right ) 
-                        => PT.ExpMark { span = OpExp2_SPAN, tree = PT.ExpBin ( right, op', left ) } ) OpExp2 SR  ) } )
+                        => PT.ExpMark { span = FULL_SPAN, tree = PT.ExpBin ( right, op', left ) } ) OpExp2 SR  ) } )
 fun OpExp2_PROD_1_SUBRULE_1_PROD_1_ACT (CONS, OpExp3, CONS_SPAN : (Lex.pos * Lex.pos), OpExp3_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( OpExp3 )
 fun OpExp2_PROD_1_ACT (SR, OpExp3, SR_SPAN : (Lex.pos * Lex.pos), OpExp3_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   (PT.ExpMark { span = FULL_SPAN, 
                                   tree = (List.foldr ( fn ( left, right)  
-                    => PT.ExpMark { span = OpExp3_SPAN, tree = PT.ExpListCons ( right, left ) } ) )OpExp3 SR   } )
+                    => PT.ExpMark { span = FULL_SPAN, tree = PT.ExpListCons ( right, left ) } ) )OpExp3 SR   } )
 fun OpExp3_PROD_1_SUBRULE_1_PROD_1_ACT (CONCAT, OpExp4, CONCAT_SPAN : (Lex.pos * Lex.pos), OpExp4_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( ( Atom.atom "^" , OpExp4) )
 fun OpExp3_PROD_1_SUBRULE_1_PROD_2_ACT (PLUS, OpExp4, PLUS_SPAN : (Lex.pos * Lex.pos), OpExp4_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
@@ -263,7 +263,7 @@ fun OpExp3_PROD_1_SUBRULE_1_PROD_3_ACT (MINUS, OpExp4, MINUS_SPAN : (Lex.pos * L
 fun OpExp3_PROD_1_ACT (SR, OpExp4, SR_SPAN : (Lex.pos * Lex.pos), OpExp4_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   (PT.ExpMark { span = FULL_SPAN, 
                                       tree = ( List.foldl ( fn ( ( op', left ), right ) 
-                        => PT.ExpMark {span = OpExp4_SPAN, tree = PT.ExpBin ( right, op', left ) } ) OpExp4 SR  ) } )
+                        => PT.ExpMark {span = FULL_SPAN, tree = PT.ExpBin ( right, op', left ) } ) OpExp4 SR  ) } )
 fun OpExp4_PROD_1_SUBRULE_1_PROD_1_ACT (TIMES, OpExp5, TIMES_SPAN : (Lex.pos * Lex.pos), OpExp5_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( ( Atom.atom "*" , OpExp5) )
 fun OpExp4_PROD_1_SUBRULE_1_PROD_2_ACT (DIV, OpExp5, DIV_SPAN : (Lex.pos * Lex.pos), OpExp5_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
@@ -273,7 +273,7 @@ fun OpExp4_PROD_1_SUBRULE_1_PROD_3_ACT (MOD, OpExp5, MOD_SPAN : (Lex.pos * Lex.p
 fun OpExp4_PROD_1_ACT (SR, OpExp5, SR_SPAN : (Lex.pos * Lex.pos), OpExp5_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   (PT.ExpMark { span = FULL_SPAN, 
                                      tree = ( List.foldl ( fn ( (op', left) , right ) 
-                        => PT.ExpMark {span = OpExp5_SPAN, tree = PT.ExpBin ( right, op', left ) } ) OpExp5 SR  ) } )
+                        => PT.ExpMark {span = FULL_SPAN, tree = PT.ExpBin ( right, op', left ) } ) OpExp5 SR  ) } )
 fun OpExp5_PROD_1_ACT (DEREF, ApplyExp, DEREF_SPAN : (Lex.pos * Lex.pos), ApplyExp_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( PT.ExpMark { span = FULL_SPAN, tree = PT.ExpUn ( Atom.atom "!", ApplyExp ) } )
 fun OpExp5_PROD_2_ACT (ApplyExp, MINUS, ApplyExp_SPAN : (Lex.pos * Lex.pos), MINUS_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
