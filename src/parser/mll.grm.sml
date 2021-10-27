@@ -156,42 +156,44 @@ MLLTokens
 
 fun Program_PROD_1_ACT (SR, env, Exp, SR_SPAN : (Lex.pos * Lex.pos), Exp_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   (case SR of
-                        NONE => (PT.ProgMark (span = FULL_SPAN, tree = PT.Prog (env, Exp) ))
-                        SOME a => () )
+                        NONE => ( PT.ProgMark {span = FULL_SPAN, tree = ( PT.Prog (env, Exp) )} )
+                       | (SOME a) => a )
 fun Program_PROD_2_ACT (TopDcl, SEMI, env, Program, TopDcl_SPAN : (Lex.pos * Lex.pos), SEMI_SPAN : (Lex.pos * Lex.pos), Program_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ()
+  ( Program )
 fun TopDcl_PROD_1_SUBRULE_2_PROD_1_ACT (EQ, BAR, TyParams, KW_data, ConDcl, UID, EQ_SPAN : (Lex.pos * Lex.pos), BAR_SPAN : (Lex.pos * Lex.pos), TyParams_SPAN : (Lex.pos * Lex.pos), KW_data_SPAN : (Lex.pos * Lex.pos), ConDcl_SPAN : (Lex.pos * Lex.pos), UID_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( ConDcl )
 fun TopDcl_PROD_1_ACT (EQ, SR, TyParams, KW_data, ConDcl, UID, EQ_SPAN : (Lex.pos * Lex.pos), SR_SPAN : (Lex.pos * Lex.pos), TyParams_SPAN : (Lex.pos * Lex.pos), KW_data_SPAN : (Lex.pos * Lex.pos), ConDcl_SPAN : (Lex.pos * Lex.pos), UID_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   (case TyParams of
-                SOME a => ( PT.DclMark ( span = TopDcl_SPAN, tree = PT.DclData( UID, a, ConDcl :: SR ) ) ) 
-                | NONE => ( PT.DclMark ( span = TopDcl_SPAN, tree = PT.DclData( UID, [], ConDcl :: SR  ) ) ) )
+                SOME a => ( PT.DclMark { span = FULL_SPAN, tree = PT.DclData( UID, a, ConDcl :: SR ) } ) 
+                | NONE => ( PT.DclMark { span = FULL_SPAN, tree = PT.DclData( UID, [], ConDcl :: SR  ) } ) )
+fun TopDcl_PROD_2_ACT (ValBind, ValBind_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
+  (PT.DclVal (ValBind))
 fun TyParams_PROD_1_SUBRULE_1_PROD_1_ACT (LB, LID, COMMA, LB_SPAN : (Lex.pos * Lex.pos), LID_SPAN : (Lex.pos * Lex.pos), COMMA_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( LID )
 fun TyParams_PROD_1_ACT (LB, SR, RB, LID, LB_SPAN : (Lex.pos * Lex.pos), SR_SPAN : (Lex.pos * Lex.pos), RB_SPAN : (Lex.pos * Lex.pos), LID_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( LID :: SR )
 fun ConDcl_PROD_1_ACT (SR, UID, SR_SPAN : (Lex.pos * Lex.pos), UID_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( PT.ConMark( ConDcl_SPAN, PT.Con( UID, SR ) ) )
+  ( PT.ConMark{ span = FULL_SPAN, tree = PT.Con( UID, SR ) } )
 fun Type_PROD_1_SUBRULE_1_PROD_1_ACT (AtomicTypeList, ARROW, AtomicTypeList_SPAN : (Lex.pos * Lex.pos), ARROW_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   (AtomicTypeList)
 fun Type_PROD_1_ACT (SR, AtomicTypeList, SR_SPAN : (Lex.pos * Lex.pos), AtomicTypeList_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( case SR of
                 [] => (AtomicTypeList)
-              | _  => (PT.TyMark (span = Type_SPAN, 
-                                  tree = (list.foldl ( fn ( left, right ) 
-                                            => PT.TyFun ( left, right ) ) AtomicTypeList SR  ) ) ) )
+                | _  => (PT.TyMark { span = FULL_SPAN, 
+                                     tree =(List.foldl ( fn ( left, right ) 
+                                            => PT.TyFun ( left, right ) ) AtomicTypeList SR  ) } ) )
 fun AtomicTypeList_PROD_1_SUBRULE_1_PROD_1_ACT (TIMES, AtomicType, TIMES_SPAN : (Lex.pos * Lex.pos), AtomicType_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( AtomicType )
 fun AtomicTypeList_PROD_1_ACT (SR, AtomicType, SR_SPAN : (Lex.pos * Lex.pos), AtomicType_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( case SR of
-                [] => ( PT.TyMark ( span = AtomicTypeList_SPAN, tree = PT.TyVar AtomicType ) )
-              | _  => ( PT.TyMark ( span = AtomicTypeList_SPAN, tree = PT.TyTuple AtomicType :: SR ) ) )
+                [] => ( PT.TyMark { span = FULL_SPAN, tree = AtomicType } )
+              | _  => ( PT.TyMark { span = FULL_SPAN, tree = PT.TyTuple ( AtomicType :: SR ) }  ) )
 fun AtomicType_PROD_1_ACT (TyArgs, UID, TyArgs_SPAN : (Lex.pos * Lex.pos), UID_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   (case TyArgs of
-                SOME a => ( PT.TyMark ( span = AtomicType_SPAN, tree = PT.TyCon( UID, a ) ) )
-                | NONE => ( PT.TyMark ( span = AtomicType_SPAN, tree = PT.TyVar( UID ) ) ) )
+                SOME a => ( PT.TyMark { span = FULL_SPAN, tree = PT.TyCon( UID, a ) } )
+                | NONE => ( PT.TyMark { span = FULL_SPAN, tree = PT.TyVar( UID ) } ) )
 fun AtomicType_PROD_2_ACT (LID, LID_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( PT.TyMark ( span = AtomicType_SPAN, tree = PT.TyVar( LID ) ) )
+  ( PT.TyMark { span = FULL_SPAN, tree = PT.TyVar( LID ) } )
 fun AtomicType_PROD_3_ACT (LP, RP, Type, LP_SPAN : (Lex.pos * Lex.pos), RP_SPAN : (Lex.pos * Lex.pos), Type_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( Type )
 fun TyArgs_PROD_1_SUBRULE_1_PROD_1_ACT (LB, Type, COMMA, LB_SPAN : (Lex.pos * Lex.pos), Type_SPAN : (Lex.pos * Lex.pos), COMMA_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
@@ -199,69 +201,88 @@ fun TyArgs_PROD_1_SUBRULE_1_PROD_1_ACT (LB, Type, COMMA, LB_SPAN : (Lex.pos * Le
 fun TyArgs_PROD_1_ACT (LB, SR, RB, Type, LB_SPAN : (Lex.pos * Lex.pos), SR_SPAN : (Lex.pos * Lex.pos), RB_SPAN : (Lex.pos * Lex.pos), Type_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   (Type :: SR)
 fun ValBind_PROD_1_ACT (EQ, KW_let, AtomicPat, Exp, EQ_SPAN : (Lex.pos * Lex.pos), KW_let_SPAN : (Lex.pos * Lex.pos), AtomicPat_SPAN : (Lex.pos * Lex.pos), Exp_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( PT.BindMark ( span = ValBind_SPAN, tree = PT.BindVal ( AtomicPat, Exp )) )
+  ( PT.BindMark { span = FULL_SPAN, tree = PT.BindVal ( AtomicPat, Exp ) } )
 fun ValBind_PROD_2_ACT (EQ, KW_fun, LID, AtomicPat, Exp, EQ_SPAN : (Lex.pos * Lex.pos), KW_fun_SPAN : (Lex.pos * Lex.pos), LID_SPAN : (Lex.pos * Lex.pos), AtomicPat_SPAN : (Lex.pos * Lex.pos), Exp_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( PT.BindMark ( span = ValBind_SPAN, tree = PT.BindFun ( LID, AtomicPat, Exp ) ) )
+  ( PT.BindMark { span = FULL_SPAN, tree = PT.BindFun ( LID, AtomicPat, Exp ) } )
 fun Pat_PROD_1_ACT (SimplePat, UID, SimplePat_SPAN : (Lex.pos * Lex.pos), UID_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( PT.PatMark ( span = Pat_SPAN, tree = PT.PatCon ( UID, SimplePat ) ) )
+  ( PT.PatMark { span = FULL_SPAN, tree = PT.PatCon ( UID, SimplePat ) } )
 fun Pat_PROD_2_ACT (CONS, SimplePat1, SimplePat2, CONS_SPAN : (Lex.pos * Lex.pos), SimplePat1_SPAN : (Lex.pos * Lex.pos), SimplePat2_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( PT.PatMark ( span = Pat_SPAN, tree = PT.PatListCons ( SimplePat1, SimplePat2 ) ) )
-fun Pat_PROD_3_ACT (AtomicPat, AtomicPat_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ()
+  ( PT.PatMark { span = FULL_SPAN, tree = PT.PatListCons ( SimplePat1, SimplePat2 ) } )
 fun AtomicPat_PROD_1_SUBRULE_1_PROD_1_ACT (LP, SimplePat, COMMA, LP_SPAN : (Lex.pos * Lex.pos), SimplePat_SPAN : (Lex.pos * Lex.pos), COMMA_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( SimplePat )
 fun AtomicPat_PROD_1_ACT (LP, SR, RP, SimplePat, LP_SPAN : (Lex.pos * Lex.pos), SR_SPAN : (Lex.pos * Lex.pos), RP_SPAN : (Lex.pos * Lex.pos), SimplePat_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( PT.PatMark ( span = AtomicPat_SPAN, tree = PT.PatTuple ( SR ) ) )
-fun AtomicPat_PROD_2_ACT (SimplePat, SimplePat_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( PT.PatMark ( span = AtomicPat_SPAN, tree = PT.PatVar (SimplePat) ) )
+  ( PT.PatMark { span = FULL_SPAN, tree = PT.PatTuple ( SR ) } )
+fun SimplePat_PROD_1_ACT (LID, LID_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
+  ( PT.PatMark { span = FULL_SPAN, tree = PT.PatVar LID } )
+fun SimplePat_PROD_2_ACT (WILD, WILD_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
+  ( PT.PatMark { span = FULL_SPAN, tree = PT.PatWild } )
 fun Exp_PROD_1_ACT (Exp1, Exp2, Exp3, KW_if, KW_else, KW_then, Exp1_SPAN : (Lex.pos * Lex.pos), Exp2_SPAN : (Lex.pos * Lex.pos), Exp3_SPAN : (Lex.pos * Lex.pos), KW_if_SPAN : (Lex.pos * Lex.pos), KW_else_SPAN : (Lex.pos * Lex.pos), KW_then_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  (PT.ExpIf (Exp1, Exp2, Exp3))
+  ( PT.ExpMark  { span = FULL_SPAN, tree = PT.ExpIf ( Exp1, Exp2, Exp3 ) } )
 fun Exp_PROD_2_SUBRULE_1_PROD_1_ACT (OpExp, ASSIGN, OpExp_SPAN : (Lex.pos * Lex.pos), ASSIGN_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   (OpExp)
 fun Exp_PROD_2_ACT (SR, OpExp, SR_SPAN : (Lex.pos * Lex.pos), OpExp_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ()
+  (case SR of
+                                            NONE => OpExp
+                                            | (SOME a) => PT.ExpMark {span = FULL_SPAN, tree = PT.ExpBin (OpExp, Atom.atom ":=", a) } )
 fun OpExp_PROD_1_SUBRULE_1_PROD_1_ACT (ORELSE, OpExp1, ORELSE_SPAN : (Lex.pos * Lex.pos), OpExp1_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( ("||", OpExp1) )
 fun OpExp_PROD_1_SUBRULE_1_PROD_2_ACT (ANDALSO, OpExp1, ANDALSO_SPAN : (Lex.pos * Lex.pos), OpExp1_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( ("&&", OpExp1) )
 fun OpExp_PROD_1_ACT (SR, OpExp1, SR_SPAN : (Lex.pos * Lex.pos), OpExp1_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ()
+  (PT.ExpMark { span = FULL_SPAN, 
+                                    tree = ( List.foldl ( fn ( (op', left), right ) 
+                                        => (case op' of
+                                            "||" => PT.ExpMark { span = OpExp1_SPAN, tree = PT.ExpOrElse (left, right) }
+                                          | "&&" => PT.ExpMark { span = OpExp1_SPAN, tree = PT.ExpAndAlso (left, right) } )  )
+                                        OpExp1 SR   ) } )
 fun OpExp1_PROD_1_SUBRULE_1_PROD_1_ACT (EQEQ, OpExp2, EQEQ_SPAN : (Lex.pos * Lex.pos), OpExp2_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( ("==", OpExp2) )
+  ( ( Atom.atom "==", OpExp2) )
 fun OpExp1_PROD_1_SUBRULE_1_PROD_2_ACT (NEQ, OpExp2, NEQ_SPAN : (Lex.pos * Lex.pos), OpExp2_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( ("!=", OpExp2) )
+  ( ( Atom.atom "!=", OpExp2) )
 fun OpExp1_PROD_1_SUBRULE_1_PROD_3_ACT (LT, OpExp2, LT_SPAN : (Lex.pos * Lex.pos), OpExp2_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( ("<" , OpExp2) )
+  ( ( Atom.atom "<" , OpExp2) )
 fun OpExp1_PROD_1_SUBRULE_1_PROD_4_ACT (LTEQ, OpExp2, LTEQ_SPAN : (Lex.pos * Lex.pos), OpExp2_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( ("<=", OpExp2) )
+  ( ( Atom.atom "<=", OpExp2) )
 fun OpExp1_PROD_1_ACT (SR, OpExp2, SR_SPAN : (Lex.pos * Lex.pos), OpExp2_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ()
+  (PT.ExpMark { span = FULL_SPAN, 
+                                      tree = ( List.foldl ( fn ( (op', left) , right ) 
+                        => PT.ExpMark { span = OpExp2_SPAN, tree = PT.ExpBin ( left, op', right ) } ) OpExp2 SR  ) } )
 fun OpExp2_PROD_1_SUBRULE_1_PROD_1_ACT (CONS, OpExp3, CONS_SPAN : (Lex.pos * Lex.pos), OpExp3_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( ("::", OpExp3) )
+  ( OpExp3 )
 fun OpExp2_PROD_1_ACT (SR, OpExp3, SR_SPAN : (Lex.pos * Lex.pos), OpExp3_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ()
+  (PT.ExpMark { span = FULL_SPAN, 
+                                  tree = (List.foldr ( fn ( left, right)  
+                    => PT.ExpMark { span = OpExp3_SPAN, tree = PT.ExpListCons ( left, right ) } ) )OpExp3 SR   } )
 fun OpExp3_PROD_1_SUBRULE_1_PROD_1_ACT (CONCAT, OpExp4, CONCAT_SPAN : (Lex.pos * Lex.pos), OpExp4_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( ("^" , OpExp4) )
+  ( ( Atom.atom "^" , OpExp4) )
 fun OpExp3_PROD_1_SUBRULE_1_PROD_2_ACT (PLUS, OpExp4, PLUS_SPAN : (Lex.pos * Lex.pos), OpExp4_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( ("+" , OpExp4) )
-fun OpExp3_PROD_1_SUBRULE_1_PROD_3_ACT (SR, MINUS, OpExp4, SR_SPAN : (Lex.pos * Lex.pos), MINUS_SPAN : (Lex.pos * Lex.pos), OpExp4_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( ("-" , OpExp4) )
+  ( ( Atom.atom "+" , OpExp4) )
+fun OpExp3_PROD_1_SUBRULE_1_PROD_3_ACT (MINUS, OpExp4, MINUS_SPAN : (Lex.pos * Lex.pos), OpExp4_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
+  ( ( Atom.atom "-" , OpExp4) )
 fun OpExp3_PROD_1_ACT (SR, OpExp4, SR_SPAN : (Lex.pos * Lex.pos), OpExp4_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ()
+  (PT.ExpMark { span = FULL_SPAN, 
+                                      tree = ( List.foldl ( fn ( ( op', left ), right ) 
+                        => PT.ExpMark {span = OpExp4_SPAN, tree = PT.ExpBin ( left, op', right ) } ) OpExp4 SR  ) } )
 fun OpExp4_PROD_1_SUBRULE_1_PROD_1_ACT (TIMES, OpExp5, TIMES_SPAN : (Lex.pos * Lex.pos), OpExp5_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( ("*" , OpExp5) )
+  ( ( Atom.atom "*" , OpExp5) )
 fun OpExp4_PROD_1_SUBRULE_1_PROD_2_ACT (DIV, OpExp5, DIV_SPAN : (Lex.pos * Lex.pos), OpExp5_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( ("/" , OpExp5) )
+  ( ( Atom.atom "/" , OpExp5) )
 fun OpExp4_PROD_1_SUBRULE_1_PROD_3_ACT (MOD, OpExp5, MOD_SPAN : (Lex.pos * Lex.pos), OpExp5_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( ("%" , OpExp5) )
+  ( ( Atom.atom "%" , OpExp5) )
 fun OpExp4_PROD_1_ACT (SR, OpExp5, SR_SPAN : (Lex.pos * Lex.pos), OpExp5_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ()
+  (PT.ExpMark { span = FULL_SPAN, 
+                                     tree = ( List.foldl ( fn ( (op', left) , right ) 
+                        => PT.ExpMark {span = OpExp5_SPAN, tree = PT.ExpBin ( left, op', right ) } ) OpExp5 SR  ) } )
 fun OpExp5_PROD_1_ACT (DEREF, ApplyExp, DEREF_SPAN : (Lex.pos * Lex.pos), ApplyExp_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ()
-fun OpExp5_PROD_2_ACT (ApplyExp, ApplyExp_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ()
+  ( PT.ExpMark { span = FULL_SPAN, tree = PT.ExpUn ( Atom.atom "!", ApplyExp ) } )
+fun OpExp5_PROD_2_ACT (ApplyExp, MINUS, ApplyExp_SPAN : (Lex.pos * Lex.pos), MINUS_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
+  ( PT.ExpMark { span = FULL_SPAN, tree = PT.ExpUn ( Atom.atom "-", ApplyExp ) } )
 fun ApplyExp_PROD_1_ACT (SR, AtomicExp, SR_SPAN : (Lex.pos * Lex.pos), AtomicExp_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( PT.ExpMark ( span = FULL_SPAN, tree = PT.ExpTuple (AtomicExp :: SR) ) )
+  (case SR of
+                        [] => AtomicExp
+                        | _ => ( PT.ExpMark { span = FULL_SPAN, 
+                                              tree = List.foldr ( fn (left, right) 
+                                    => PT.ExpMark {span = FULL_SPAN, tree = PT.ExpApp (left, right)} ) AtomicExp SR } ) )
 fun AtomicExp_PROD_1_ACT (UID, UID_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   (PT.ExpCon UID)
 fun AtomicExp_PROD_2_ACT (LID, LID_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
@@ -276,33 +297,33 @@ fun AtomicExp_PROD_5_SUBRULE_1_PROD_1_ACT (LP, SR, Exp, LP_SPAN : (Lex.pos * Lex
   (Exp :: SR)
 fun AtomicExp_PROD_5_ACT (LP, SR, RP, LP_SPAN : (Lex.pos * Lex.pos), SR_SPAN : (Lex.pos * Lex.pos), RP_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( case SR of
-                        NONE => PT.ExpMark ( span = AtomicExp_SPAN, tree =  PT.ExpTuple ([]) )
-                        | SOME a => (case ( List.length a ) of
-                                     1 => a 
-                                     | _ => PT.ExpMark ( span = AtomicExp_SPAN, tree = PT.ExpTuple ( a ) ) ) )
+                        NONE => PT.ExpMark { span = FULL_SPAN, tree = PT.ExpTuple ([]) }
+                        | SOME a => PT.ExpMark { span = FULL_SPAN, tree = PT.ExpTuple (a) } )
 fun AtomicExp_PROD_6_ACT (RCB, LCB, Scope, RCB_SPAN : (Lex.pos * Lex.pos), LCB_SPAN : (Lex.pos * Lex.pos), Scope_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( PT.ExpMark ( span = AtomicExp_SPAN, tree = PT.ExpScope Scope ) )
+  ( PT.ExpMark { span = FULL_SPAN, tree = PT.ExpScope Scope } )
 fun AtomicExp_PROD_7_ACT (SR, KW_end, KW_of, Exp, KW_case, SR_SPAN : (Lex.pos * Lex.pos), KW_end_SPAN : (Lex.pos * Lex.pos), KW_of_SPAN : (Lex.pos * Lex.pos), Exp_SPAN : (Lex.pos * Lex.pos), KW_case_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ( PT.ExpMark ( span = AtomicExp_SPAN, tree = PT.ExpCase ( Exp, SR ) ) )
+  ( PT.ExpMark { span = FULL_SPAN, tree = PT.ExpCase ( Exp, SR ) } )
 fun Scope_PROD_1_ACT (SR, env, Exp, SR_SPAN : (Lex.pos * Lex.pos), Exp_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
   ( case SR of
-                   SOME a => 
-                   | NONE => ( env, Exp ) )
+                   NONE  => ( env, Exp ) 
+                   | SOME a => a )
+fun Scope_PROD_2_ACT (ValBind, SEMI, env, Scope, ValBind_SPAN : (Lex.pos * Lex.pos), SEMI_SPAN : (Lex.pos * Lex.pos), Scope_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
+  ( Scope )
 fun MatchCase_PROD_1_ACT (Pat, RCB, LCB, DARROW, Scope, Pat_SPAN : (Lex.pos * Lex.pos), RCB_SPAN : (Lex.pos * Lex.pos), LCB_SPAN : (Lex.pos * Lex.pos), DARROW_SPAN : (Lex.pos * Lex.pos), Scope_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)) = 
-  ()
+  (PT.RuleMark { span = FULL_SPAN, tree = PT.RuleCase ( Pat, Scope ) } )
 fun ARGS_3 () = 
   ([])
 fun ARGS_5 (SEMI, env, Exp) = 
-  (PT.BindExp Exp :: env)
+  ( ( PT.DclVal (PT.BindExp Exp) ) :: env )
 fun ARGS_7 (TopDcl, SEMI, env) = 
   (TopDcl :: env)
-fun ARGS_62 (LCB) = 
+fun ARGS_63 (LCB) = 
   ([])
-fun ARGS_65 (SEMI, env, Exp) = 
-  ( PT.BindMark ( span = Exp_SPAN, tree = PT.BindExp Exp ) :: env )
-fun ARGS_66 (ValBind, SEMI, env) = 
-  (ValBind :: env)
-fun ARGS_68 (Pat, LCB, DARROW) = 
+fun ARGS_66 (SEMI, env, Exp) = 
+  ( ( PT.BindExp Exp ) :: env )
+fun ARGS_68 (ValBind, SEMI, env) = 
+  ( (ValBind) :: env )
+fun ARGS_70 (Pat, LCB, DARROW) = 
   ([])
       end (* UserCode *)
 
@@ -532,10 +553,26 @@ fun matchEOF strm = (case (lex(strm))
 val (PreProg_NT) = 
 let
 fun SimplePat_NT (strm) = let
-      val (LID_RES, LID_SPAN, strm') = matchLID(strm)
-      val FULL_SPAN = (#1(LID_SPAN), #2(LID_SPAN))
+      fun SimplePat_PROD_1 (strm) = let
+            val (LID_RES, LID_SPAN, strm') = matchLID(strm)
+            val FULL_SPAN = (#1(LID_SPAN), #2(LID_SPAN))
+            in
+              (UserCode.SimplePat_PROD_1_ACT (LID_RES, LID_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)),
+                FULL_SPAN, strm')
+            end
+      fun SimplePat_PROD_2 (strm) = let
+            val (WILD_RES, WILD_SPAN, strm') = matchWILD(strm)
+            val FULL_SPAN = (#1(WILD_SPAN), #2(WILD_SPAN))
+            in
+              (UserCode.SimplePat_PROD_2_ACT (WILD_RES, WILD_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)),
+                FULL_SPAN, strm')
+            end
       in
-        ((LID_RES), FULL_SPAN, strm')
+        (case (lex(strm))
+         of (Tok.WILD, _, strm') => SimplePat_PROD_2(strm)
+          | (Tok.LID(_), _, strm') => SimplePat_PROD_1(strm)
+          | _ => fail()
+        (* end case *))
       end
 fun AtomicPat_NT (strm) = let
       fun AtomicPat_PROD_1 (strm) = let
@@ -564,12 +601,12 @@ fun AtomicPat_NT (strm) = let
             val (SimplePat_RES, SimplePat_SPAN, strm') = SimplePat_NT(strm)
             val FULL_SPAN = (#1(SimplePat_SPAN), #2(SimplePat_SPAN))
             in
-              (UserCode.AtomicPat_PROD_2_ACT (SimplePat_RES, SimplePat_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)),
-                FULL_SPAN, strm')
+              ((SimplePat_RES), FULL_SPAN, strm')
             end
       in
         (case (lex(strm))
-         of (Tok.LID(_), _, strm') => AtomicPat_PROD_2(strm)
+         of (Tok.WILD, _, strm') => AtomicPat_PROD_2(strm)
+          | (Tok.LID(_), _, strm') => AtomicPat_PROD_2(strm)
           | (Tok.LP, _, strm') => AtomicPat_PROD_1(strm)
           | _ => fail()
         (* end case *))
@@ -584,7 +621,8 @@ fun Pat_NT (strm) = let
                     ((SimplePat_RES), FULL_SPAN, strm')
                   end
             fun Pat_PROD_1_SUBRULE_1_PRED (strm) = (case (lex(strm))
-                   of (Tok.LID(_), _, strm') => true
+                   of (Tok.WILD, _, strm') => true
+                    | (Tok.LID(_), _, strm') => true
                     | _ => false
                   (* end case *))
             val (SimplePat_RES, SimplePat_SPAN, strm') = EBNF.optional(Pat_PROD_1_SUBRULE_1_PRED, Pat_PROD_1_SUBRULE_1_NT, strm')
@@ -606,13 +644,18 @@ fun Pat_NT (strm) = let
             val (AtomicPat_RES, AtomicPat_SPAN, strm') = AtomicPat_NT(strm)
             val FULL_SPAN = (#1(AtomicPat_SPAN), #2(AtomicPat_SPAN))
             in
-              (UserCode.Pat_PROD_3_ACT (AtomicPat_RES, AtomicPat_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)),
-                FULL_SPAN, strm')
+              ((AtomicPat_RES), FULL_SPAN, strm')
             end
       in
         (case (lex(strm))
          of (Tok.LP, _, strm') => Pat_PROD_3(strm)
           | (Tok.UID(_), _, strm') => Pat_PROD_1(strm)
+          | (Tok.WILD, _, strm') =>
+              (case (lex(strm'))
+               of (Tok.CONS, _, strm') => Pat_PROD_2(strm)
+                | (Tok.DARROW, _, strm') => Pat_PROD_3(strm)
+                | _ => fail()
+              (* end case *))
           | (Tok.LID(_), _, strm') =>
               (case (lex(strm'))
                of (Tok.CONS, _, strm') => Pat_PROD_2(strm)
@@ -644,6 +687,7 @@ fun ValBind_NT (strm) = let
                   end
             fun ValBind_PROD_2_SUBRULE_1_PRED (strm) = (case (lex(strm))
                    of (Tok.LP, _, strm') => true
+                    | (Tok.WILD, _, strm') => true
                     | (Tok.LID(_), _, strm') => true
                     | _ => false
                   (* end case *))
@@ -700,6 +744,7 @@ and Exp_NT (strm) = let
          of (Tok.KW_case, _, strm') => Exp_PROD_2(strm)
           | (Tok.LP, _, strm') => Exp_PROD_2(strm)
           | (Tok.LCB, _, strm') => Exp_PROD_2(strm)
+          | (Tok.MINUS, _, strm') => Exp_PROD_2(strm)
           | (Tok.DEREF, _, strm') => Exp_PROD_2(strm)
           | (Tok.UID(_), _, strm') => Exp_PROD_2(strm)
           | (Tok.LID(_), _, strm') => Exp_PROD_2(strm)
@@ -845,21 +890,10 @@ and OpExp3_NT (strm) = let
                   end
             fun OpExp3_PROD_1_SUBRULE_1_PROD_3 (strm) = let
                   val (MINUS_RES, MINUS_SPAN, strm') = matchMINUS(strm)
-                  fun OpExp3_PROD_1_SUBRULE_1_PROD_3_SUBRULE_1_NT (strm) = let
-                        val (MINUS_RES, MINUS_SPAN, strm') = matchMINUS(strm)
-                        val FULL_SPAN = (#1(MINUS_SPAN), #2(MINUS_SPAN))
-                        in
-                          ((), FULL_SPAN, strm')
-                        end
-                  fun OpExp3_PROD_1_SUBRULE_1_PROD_3_SUBRULE_1_PRED (strm) = (case (lex(strm))
-                         of (Tok.MINUS, _, strm') => true
-                          | _ => false
-                        (* end case *))
-                  val (SR_RES, SR_SPAN, strm') = EBNF.optional(OpExp3_PROD_1_SUBRULE_1_PROD_3_SUBRULE_1_PRED, OpExp3_PROD_1_SUBRULE_1_PROD_3_SUBRULE_1_NT, strm')
                   val (OpExp4_RES, OpExp4_SPAN, strm') = OpExp4_NT(strm')
                   val FULL_SPAN = (#1(MINUS_SPAN), #2(OpExp4_SPAN))
                   in
-                    (UserCode.OpExp3_PROD_1_SUBRULE_1_PROD_3_ACT (SR_RES, MINUS_RES, OpExp4_RES, SR_SPAN : (Lex.pos * Lex.pos), MINUS_SPAN : (Lex.pos * Lex.pos), OpExp4_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)),
+                    (UserCode.OpExp3_PROD_1_SUBRULE_1_PROD_3_ACT (MINUS_RES, OpExp4_RES, MINUS_SPAN : (Lex.pos * Lex.pos), OpExp4_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)),
                       FULL_SPAN, strm')
                   end
             in
@@ -940,22 +974,30 @@ and OpExp5_NT (strm) = let
                 FULL_SPAN, strm')
             end
       fun OpExp5_PROD_2 (strm) = let
+            val (MINUS_RES, MINUS_SPAN, strm') = matchMINUS(strm)
+            val (ApplyExp_RES, ApplyExp_SPAN, strm') = ApplyExp_NT(strm')
+            val FULL_SPAN = (#1(MINUS_SPAN), #2(ApplyExp_SPAN))
+            in
+              (UserCode.OpExp5_PROD_2_ACT (ApplyExp_RES, MINUS_RES, ApplyExp_SPAN : (Lex.pos * Lex.pos), MINUS_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)),
+                FULL_SPAN, strm')
+            end
+      fun OpExp5_PROD_3 (strm) = let
             val (ApplyExp_RES, ApplyExp_SPAN, strm') = ApplyExp_NT(strm)
             val FULL_SPAN = (#1(ApplyExp_SPAN), #2(ApplyExp_SPAN))
             in
-              (UserCode.OpExp5_PROD_2_ACT (ApplyExp_RES, ApplyExp_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)),
-                FULL_SPAN, strm')
+              ((ApplyExp_RES), FULL_SPAN, strm')
             end
       in
         (case (lex(strm))
-         of (Tok.KW_case, _, strm') => OpExp5_PROD_2(strm)
-          | (Tok.LP, _, strm') => OpExp5_PROD_2(strm)
-          | (Tok.LCB, _, strm') => OpExp5_PROD_2(strm)
-          | (Tok.UID(_), _, strm') => OpExp5_PROD_2(strm)
-          | (Tok.LID(_), _, strm') => OpExp5_PROD_2(strm)
-          | (Tok.NUMBER(_), _, strm') => OpExp5_PROD_2(strm)
-          | (Tok.STRING(_), _, strm') => OpExp5_PROD_2(strm)
+         of (Tok.KW_case, _, strm') => OpExp5_PROD_3(strm)
+          | (Tok.LP, _, strm') => OpExp5_PROD_3(strm)
+          | (Tok.LCB, _, strm') => OpExp5_PROD_3(strm)
+          | (Tok.UID(_), _, strm') => OpExp5_PROD_3(strm)
+          | (Tok.LID(_), _, strm') => OpExp5_PROD_3(strm)
+          | (Tok.NUMBER(_), _, strm') => OpExp5_PROD_3(strm)
+          | (Tok.STRING(_), _, strm') => OpExp5_PROD_3(strm)
           | (Tok.DEREF, _, strm') => OpExp5_PROD_1(strm)
+          | (Tok.MINUS, _, strm') => OpExp5_PROD_2(strm)
           | _ => fail()
         (* end case *))
       end
@@ -1041,6 +1083,7 @@ and AtomicExp_NT (strm) = let
                     | (Tok.KW_if, _, strm') => true
                     | (Tok.LP, _, strm') => true
                     | (Tok.LCB, _, strm') => true
+                    | (Tok.MINUS, _, strm') => true
                     | (Tok.DEREF, _, strm') => true
                     | (Tok.UID(_), _, strm') => true
                     | (Tok.LID(_), _, strm') => true
@@ -1057,7 +1100,7 @@ and AtomicExp_NT (strm) = let
             end
       fun AtomicExp_PROD_6 (strm) = let
             val (LCB_RES, LCB_SPAN, strm') = matchLCB(strm)
-            val (Scope_RES, Scope_SPAN, strm') = (Scope_NT (UserCode.ARGS_62 (LCB_RES)))(strm')
+            val (Scope_RES, Scope_SPAN, strm') = (Scope_NT (UserCode.ARGS_63 (LCB_RES)))(strm')
             val (RCB_RES, RCB_SPAN, strm') = matchRCB(strm')
             val FULL_SPAN = (#1(LCB_SPAN), #2(RCB_SPAN))
             in
@@ -1101,7 +1144,7 @@ and MatchCase_NT (strm) = let
       val (LCB_RES, LCB_SPAN, strm') = matchLCB(strm)
       val (Pat_RES, Pat_SPAN, strm') = Pat_NT(strm')
       val (DARROW_RES, DARROW_SPAN, strm') = matchDARROW(strm')
-      val (Scope_RES, Scope_SPAN, strm') = (Scope_NT (UserCode.ARGS_68 (Pat_RES, LCB_RES, DARROW_RES)))(strm')
+      val (Scope_RES, Scope_SPAN, strm') = (Scope_NT (UserCode.ARGS_70 (Pat_RES, LCB_RES, DARROW_RES)))(strm')
       val (RCB_RES, RCB_SPAN, strm') = matchRCB(strm')
       val FULL_SPAN = (#1(LCB_SPAN), #2(RCB_SPAN))
       in
@@ -1113,7 +1156,7 @@ and Scope_NT (env_RES) (strm) = let
             val (Exp_RES, Exp_SPAN, strm') = Exp_NT(strm)
             fun Scope_PROD_1_SUBRULE_1_NT (strm) = let
                   val (SEMI_RES, SEMI_SPAN, strm') = matchSEMI(strm)
-                  val (Scope_RES, Scope_SPAN, strm') = (Scope_NT (UserCode.ARGS_65 (SEMI_RES, env_RES, Exp_RES)))(strm')
+                  val (Scope_RES, Scope_SPAN, strm') = (Scope_NT (UserCode.ARGS_66 (SEMI_RES, env_RES, Exp_RES)))(strm')
                   val FULL_SPAN = (#1(SEMI_SPAN), #2(Scope_SPAN))
                   in
                     ((Scope_RES), FULL_SPAN, strm')
@@ -1131,10 +1174,11 @@ and Scope_NT (env_RES) (strm) = let
       fun Scope_PROD_2 (strm) = let
             val (ValBind_RES, ValBind_SPAN, strm') = ValBind_NT(strm)
             val (SEMI_RES, SEMI_SPAN, strm') = matchSEMI(strm')
-            val (Scope_RES, Scope_SPAN, strm') = (Scope_NT (UserCode.ARGS_66 (ValBind_RES, SEMI_RES, env_RES)))(strm')
+            val (Scope_RES, Scope_SPAN, strm') = (Scope_NT (UserCode.ARGS_68 (ValBind_RES, SEMI_RES, env_RES)))(strm')
             val FULL_SPAN = (#1(ValBind_SPAN), #2(Scope_SPAN))
             in
-              ((ValBind_RES, Scope_RES), FULL_SPAN, strm')
+              (UserCode.Scope_PROD_2_ACT (ValBind_RES, SEMI_RES, env_RES, Scope_RES, ValBind_SPAN : (Lex.pos * Lex.pos), SEMI_SPAN : (Lex.pos * Lex.pos), Scope_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)),
+                FULL_SPAN, strm')
             end
       in
         (case (lex(strm))
@@ -1144,6 +1188,7 @@ and Scope_NT (env_RES) (strm) = let
           | (Tok.KW_if, _, strm') => Scope_PROD_1(strm)
           | (Tok.LP, _, strm') => Scope_PROD_1(strm)
           | (Tok.LCB, _, strm') => Scope_PROD_1(strm)
+          | (Tok.MINUS, _, strm') => Scope_PROD_1(strm)
           | (Tok.DEREF, _, strm') => Scope_PROD_1(strm)
           | (Tok.UID(_), _, strm') => Scope_PROD_1(strm)
           | (Tok.LID(_), _, strm') => Scope_PROD_1(strm)
@@ -1337,7 +1382,8 @@ fun TopDcl_NT (strm) = let
             val (ValBind_RES, ValBind_SPAN, strm') = ValBind_NT(strm)
             val FULL_SPAN = (#1(ValBind_SPAN), #2(ValBind_SPAN))
             in
-              ((ValBind_RES), FULL_SPAN, strm')
+              (UserCode.TopDcl_PROD_2_ACT (ValBind_RES, ValBind_SPAN : (Lex.pos * Lex.pos), FULL_SPAN : (Lex.pos * Lex.pos)),
+                FULL_SPAN, strm')
             end
       in
         (case (lex(strm))
@@ -1385,6 +1431,7 @@ fun Program_NT (env_RES) (strm) = let
           | (Tok.KW_if, _, strm') => Program_PROD_1(strm)
           | (Tok.LP, _, strm') => Program_PROD_1(strm)
           | (Tok.LCB, _, strm') => Program_PROD_1(strm)
+          | (Tok.MINUS, _, strm') => Program_PROD_1(strm)
           | (Tok.DEREF, _, strm') => Program_PROD_1(strm)
           | (Tok.UID(_), _, strm') => Program_PROD_1(strm)
           | (Tok.LID(_), _, strm') => Program_PROD_1(strm)

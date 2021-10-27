@@ -74,19 +74,20 @@ PreProg
 
 Program(env)
         (*This Exp is a Valbind*)
-        : Exp (";" Program@(PT.BindExp Exp :: env))? => (case SR of
-                        NONE => (PT.ProgMark (span = FULL_SPAN, tree = PT.Prog (env, Exp) ))
-                        SOME a => () )
-        | TopDcl ";" Program@(TopDcl :: env)=> ()
+        : Exp (";" Program@( ( PT.DclVal (PT.BindExp Exp) ) :: env ) )? 
+                    => (case SR of
+                        NONE => ( PT.ProgMark {span = FULL_SPAN, tree = ( PT.Prog (env, Exp) )} )
+                       | (SOME a) => a )
+        | TopDcl ";" Program@(TopDcl :: env) => ( Program ) 
         ;
 
 TopDcl
         : "data" UID TyParams? "=" ConDcl ( "|" ConDcl => ( ConDcl ))*
         => (case TyParams of
-                SOME a => ( PT.DclMark ( span = TopDcl_SPAN, tree = PT.DclData( UID, a, ConDcl :: SR ) ) ) 
-                | NONE => ( PT.DclMark ( span = TopDcl_SPAN, tree = PT.DclData( UID, [], ConDcl :: SR  ) ) ) )
+                SOME a => ( PT.DclMark { span = FULL_SPAN, tree = PT.DclData( UID, a, ConDcl :: SR ) } ) 
+                | NONE => ( PT.DclMark { span = FULL_SPAN, tree = PT.DclData( UID, [], ConDcl :: SR  ) } ) )
                 (*END OF CASE*)
-        | ValBind
+        | ValBind => (PT.DclVal (ValBind))
         ;
 
 TyParams 
@@ -94,32 +95,32 @@ TyParams
         ;
 
 ConDcl 
-        : UID ( "of" Type )? => ( PT.ConMark( ConDcl_SPAN, PT.Con( UID, SR ) ) )
+        : UID ( "of" Type )? => ( PT.ConMark{ span = FULL_SPAN, tree = PT.Con( UID, SR ) } )
         ;
 
 Type
         : AtomicTypeList ( "->" AtomicTypeList => (AtomicTypeList) )* 
             => ( case SR of
                 [] => (AtomicTypeList)
-              | _  => (PT.TyMark (span = Type_SPAN, 
-                                  tree = (list.foldl ( fn ( left, right ) 
-                                            => PT.TyFun ( left, right ) ) AtomicTypeList SR  ) ) ) )
+                | _  => (PT.TyMark { span = FULL_SPAN, 
+                                     tree =(List.foldl ( fn ( left, right ) 
+                                            => PT.TyFun ( left, right ) ) AtomicTypeList SR  ) } ) )
         ;
 
 AtomicTypeList        
         : AtomicType ( "*" AtomicType => ( AtomicType ) )* =>
             ( case SR of
-                [] => ( PT.TyMark ( span = AtomicTypeList_SPAN, tree = PT.TyVar AtomicType ) )
-              | _  => ( PT.TyMark ( span = AtomicTypeList_SPAN, tree = PT.TyTuple AtomicType :: SR ) ) )
+                [] => ( PT.TyMark { span = FULL_SPAN, tree = AtomicType } )
+              | _  => ( PT.TyMark { span = FULL_SPAN, tree = PT.TyTuple ( AtomicType :: SR ) }  ) )
         ;
 
 AtomicType
         : UID TyArgs?
             => (case TyArgs of
-                SOME a => ( PT.TyMark ( span = AtomicType_SPAN, tree = PT.TyCon( UID, a ) ) )
-                | NONE => ( PT.TyMark ( span = AtomicType_SPAN, tree = PT.TyVar( UID ) ) ) )
+                SOME a => ( PT.TyMark { span = FULL_SPAN, tree = PT.TyCon( UID, a ) } )
+                | NONE => ( PT.TyMark { span = FULL_SPAN, tree = PT.TyVar( UID ) } ) )
                 (*END OF CASE*) 
-        | LID => ( PT.TyMark ( span = AtomicType_SPAN, tree = PT.TyVar( LID ) ) )
+        | LID => ( PT.TyMark { span = FULL_SPAN, tree = PT.TyVar( LID ) } )
         | "(" Type ")" => ( Type )
         ;
 
@@ -129,71 +130,97 @@ TyArgs
                                                                         
 ValBind
         : "let" AtomicPat "=" Exp 
-                    => ( PT.BindMark ( span = ValBind_SPAN, tree = PT.BindVal ( AtomicPat, Exp )) ) 
+                    => ( PT.BindMark { span = FULL_SPAN, tree = PT.BindVal ( AtomicPat, Exp ) } ) 
         | "fun" LID AtomicPat+ "=" Exp 
-                    => ( PT.BindMark ( span = ValBind_SPAN, tree = PT.BindFun ( LID, AtomicPat, Exp ) ) )
+                    => ( PT.BindMark { span = FULL_SPAN, tree = PT.BindFun ( LID, AtomicPat, Exp ) } )
         ;
 
 Pat
         : UID SimplePat? 
-                => ( PT.PatMark ( span = Pat_SPAN, tree = PT.PatCon ( UID, SimplePat ) ) )
+                => ( PT.PatMark { span = FULL_SPAN, tree = PT.PatCon ( UID, SimplePat ) } )
         | SimplePat "::" SimplePat 
-                => ( PT.PatMark ( span = Pat_SPAN, tree = PT.PatListCons ( SimplePat1, SimplePat2 ) ) )
-        | AtomicPat => ()
+                => ( PT.PatMark { span = FULL_SPAN, tree = PT.PatListCons ( SimplePat1, SimplePat2 ) } )
+        | AtomicPat
         ;
 
 AtomicPat
         : "(" SimplePat ("," SimplePat => ( SimplePat ) )* ")" 
-                    => ( PT.PatMark ( span = AtomicPat_SPAN, tree = PT.PatTuple ( SR ) ) )
-        | SimplePat => ( PT.PatMark ( span = AtomicPat_SPAN, tree = PT.PatVar (SimplePat) ) )
+                    => ( PT.PatMark { span = FULL_SPAN, tree = PT.PatTuple ( SR ) } )
+        | SimplePat
         ;
 
 SimplePat
-        : LID
+        : LID => ( PT.PatMark { span = FULL_SPAN, tree = PT.PatVar LID } )
+        | "_" => ( PT.PatMark { span = FULL_SPAN, tree = PT.PatWild } )
         ;
 
 Exp
-        : "if" Exp "then" Exp "else" Exp => (PT.ExpIf (Exp1, Exp2, Exp3))
-        | OpExp (":=" OpExp => (OpExp))? => ()
+        : "if" Exp "then" Exp "else" Exp => ( PT.ExpMark  { span = FULL_SPAN, tree = PT.ExpIf ( Exp1, Exp2, Exp3 ) } )
+        | OpExp (":=" OpExp => (OpExp))? => (case SR of
+                                            NONE => OpExp
+                                            | (SOME a) => PT.ExpMark {span = FULL_SPAN, tree = PT.ExpBin (OpExp, Atom.atom ":=", a) } )
         ;
 
 OpExp 
         : OpExp1 ( "||" OpExp1 => ( ("||", OpExp1) )
-                | "&&" OpExp1 => ( ("&&", OpExp1) ))* => ()
+                | "&&" OpExp1 => ( ("&&", OpExp1) ))* 
+                    =>  (PT.ExpMark { span = FULL_SPAN, 
+                                    tree = ( List.foldl ( fn ( (op', left), right ) 
+                                        => (case op' of
+                                            "||" => PT.ExpMark { span = OpExp1_SPAN, tree = PT.ExpOrElse (left, right) }
+                                          | "&&" => PT.ExpMark { span = OpExp1_SPAN, tree = PT.ExpAndAlso (left, right) } )  )
+                                        OpExp1 SR   ) } )
         ;
 
 OpExp1
-        : OpExp2 ( "==" OpExp2 => ( ("==", OpExp2) )
-                | "!=" OpExp2 => ( ("!=", OpExp2) )
-                | "<"  OpExp2 => ( ("<" , OpExp2) )
-                | "<=" OpExp2 => ( ("<=", OpExp2) ))* => ()
+        : OpExp2 ( "==" OpExp2 => ( ( Atom.atom "==", OpExp2) )
+                | "!=" OpExp2 => ( ( Atom.atom "!=", OpExp2) )
+                | "<"  OpExp2 => ( ( Atom.atom "<" , OpExp2) )
+                | "<=" OpExp2 => ( ( Atom.atom "<=", OpExp2) ))* 
+                    =>  (PT.ExpMark { span = FULL_SPAN, 
+                                      tree = ( List.foldl ( fn ( (op', left) , right ) 
+                        => PT.ExpMark { span = OpExp2_SPAN, tree = PT.ExpBin ( left, op', right ) } ) OpExp2 SR  ) } )
         ;
 
 OpExp2
-        : OpExp3 ( "::" OpExp3 => ( ("::", OpExp3) ))* => ()
+        : OpExp3 ( "::" OpExp3 => ( OpExp3 ))* 
+                =>  (PT.ExpMark { span = FULL_SPAN, 
+                                  tree = (List.foldr ( fn ( left, right)  
+                    => PT.ExpMark { span = OpExp3_SPAN, tree = PT.ExpListCons ( left, right ) } ) )OpExp3 SR   } )
         ;
 
 OpExp3
-        : OpExp4 ( "^"  OpExp4 => ( ("^" , OpExp4) )
-                | "+"  OpExp4 => ( ("+" , OpExp4) )
-             (*On second minus we know there is a binop and a unop*) 
-                | "-" ("-")?  OpExp4 => ( ("-" , OpExp4) ))* => ()
+        : OpExp4 ( "^"  OpExp4 => ( ( Atom.atom "^" , OpExp4) )
+                | "+"  OpExp4 => ( ( Atom.atom "+" , OpExp4) )
+                | "-"  OpExp4 => ( ( Atom.atom "-" , OpExp4) ))* 
+                    =>  (PT.ExpMark { span = FULL_SPAN, 
+                                      tree = ( List.foldl ( fn ( ( op', left ), right ) 
+                        => PT.ExpMark {span = OpExp4_SPAN, tree = PT.ExpBin ( left, op', right ) } ) OpExp4 SR  ) } )
         ;
 
 OpExp4
-        : OpExp5 ( "*"  OpExp5 => ( ("*" , OpExp5) )
-                | "/"  OpExp5 => ( ("/" , OpExp5) )
-                | "%"  OpExp5 => ( ("%" , OpExp5) ))* => ()
+        : OpExp5 ( "*"  OpExp5 => ( ( Atom.atom "*" , OpExp5) )
+                | "/"  OpExp5 => ( ( Atom.atom "/" , OpExp5) )
+                | "%"  OpExp5 => ( ( Atom.atom "%" , OpExp5) ))* 
+                    => (PT.ExpMark { span = FULL_SPAN, 
+                                     tree = ( List.foldl ( fn ( (op', left) , right ) 
+                        => PT.ExpMark {span = OpExp5_SPAN, tree = PT.ExpBin ( left, op', right ) } ) OpExp5 SR  ) } ) 
         ;
 
 OpExp5
-        : "!" ApplyExp => ()
-        | ApplyExp     => ()
+        : "!" ApplyExp => ( PT.ExpMark { span = FULL_SPAN, tree = PT.ExpUn ( Atom.atom "!", ApplyExp ) } )
+        | "-" ApplyExp => ( PT.ExpMark { span = FULL_SPAN, tree = PT.ExpUn ( Atom.atom "-", ApplyExp ) } )
+        | ApplyExp
         ;
 
 
 ApplyExp
-        : AtomicExp (AtomicExp)* => ( PT.ExpMark ( span = FULL_SPAN, tree = PT.ExpTuple (AtomicExp :: SR) ) )
+        : AtomicExp (AtomicExp)* => 
+                        (case SR of
+                        [] => AtomicExp
+                        | _ => ( PT.ExpMark { span = FULL_SPAN, 
+                                              tree = List.foldr ( fn (left, right) 
+                                    => PT.ExpMark {span = FULL_SPAN, tree = PT.ExpApp (left, right)} ) AtomicExp SR } ) )
         ;
 
 
@@ -204,24 +231,23 @@ AtomicExp
         | NUMBER => (PT.ExpInt NUMBER)
         | "(" ( Exp ("," Exp => (Exp))* => (Exp :: SR) )? ")" 
                     => ( case SR of
-                        NONE => PT.ExpMark ( span = AtomicExp_SPAN, tree =  PT.ExpTuple ([]) )
-                        | SOME a => (case ( List.length a ) of
-                                     1 => a 
-                                     | _ => PT.ExpMark ( span = AtomicExp_SPAN, tree = PT.ExpTuple ( a ) ) ) )
-        | "{" Scope@([]) "}" => ( PT.ExpMark ( span = AtomicExp_SPAN, tree = PT.ExpScope Scope ) )
-        | "case" Exp "of" (MatchCase)+ "end" => ( PT.ExpMark ( span = AtomicExp_SPAN, tree = PT.ExpCase ( Exp, SR ) ) )
+                        NONE => PT.ExpMark { span = FULL_SPAN, tree = PT.ExpTuple ([]) }
+                        | SOME a => PT.ExpMark { span = FULL_SPAN, tree = PT.ExpTuple (a) } )
+
+        | "{" Scope@([]) "}" => ( PT.ExpMark { span = FULL_SPAN, tree = PT.ExpScope Scope } )
+        | "case" Exp "of" (MatchCase)+ "end" => ( PT.ExpMark { span = FULL_SPAN, tree = PT.ExpCase ( Exp, SR ) } )
         ;  
 
-Scope(env) 
+Scope(env)
         (*This Exp is a Valbind if there is a scope after it*)
-        : Exp ( ";" Scope@( PT.BindMark ( span = Exp_SPAN, tree = PT.BindExp Exp ) :: env ) )? 
+        : Exp ( ";" Scope@( ( PT.BindExp Exp ) :: env ) )? 
                 => ( case SR of
-                   SOME a => 
-                   | NONE => ( env, Exp ) ) 
-        | ValBind ";" Scope@(ValBind :: env)
+                   NONE  => ( env, Exp ) 
+                   | SOME a => a ) 
+        | ValBind ";" Scope@( (ValBind) :: env ) => ( Scope )
         ;
 
 MatchCase
-        : "{" Pat "=>" Scope@([]) "}" => ()
+        : "{" Pat "=>" Scope@([]) "}" => (PT.RuleMark { span = FULL_SPAN, tree = PT.RuleCase ( Pat, Scope ) } )
         ;
 
