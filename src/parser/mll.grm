@@ -74,11 +74,11 @@ PreProg
 
 Program(env)
         (*This Exp is a Valbind*)
-        : Exp (";" Program@( ( PT.DclVal (PT.BindExp Exp) ) :: env ) )? 
+        : Exp (";" Program@( List.concat ( [env,  [ ( PT.DclVal (PT.BindExp Exp) ) ] ] ) ) )? 
                     => (case SR of
                         NONE => ( PT.ProgMark {span = FULL_SPAN, tree = ( PT.Prog (env, Exp) )} )
                        | (SOME a) => a )
-        | TopDcl ";" Program@(TopDcl :: env) => ( Program ) 
+        | TopDcl ";" Program@(List.concat ([env, [TopDcl]])) => ( Program ) 
         ;
 
 TopDcl
@@ -145,7 +145,7 @@ Pat
 
 AtomicPat
         : "(" SimplePat ("," SimplePat => ( SimplePat ) )* ")" 
-                    => ( PT.PatMark { span = FULL_SPAN, tree = PT.PatTuple ( SR ) } )
+                    => ( PT.PatMark { span = FULL_SPAN, tree = PT.PatTuple ( SimplePat :: SR ) } )
         | SimplePat
         ;
 
@@ -167,8 +167,9 @@ OpExp
                     =>  (PT.ExpMark { span = FULL_SPAN, 
                                     tree = ( List.foldl ( fn ( (op', left), right ) 
                                         => (case op' of
-                                            "||" => PT.ExpMark { span = OpExp1_SPAN, tree = PT.ExpOrElse (left, right) }
-                                          | "&&" => PT.ExpMark { span = OpExp1_SPAN, tree = PT.ExpAndAlso (left, right) } )  )
+                                            "||" => PT.ExpMark { span = OpExp1_SPAN, tree = PT.ExpOrElse (right, left) }
+                                          | "&&" => PT.ExpMark { span = OpExp1_SPAN, tree = PT.ExpAndAlso (right, left) }
+                                          |  _   => PT.ExpInt 0)  )
                                         OpExp1 SR   ) } )
         ;
 
@@ -179,14 +180,14 @@ OpExp1
                 | "<=" OpExp2 => ( ( Atom.atom "<=", OpExp2) ))* 
                     =>  (PT.ExpMark { span = FULL_SPAN, 
                                       tree = ( List.foldl ( fn ( (op', left) , right ) 
-                        => PT.ExpMark { span = OpExp2_SPAN, tree = PT.ExpBin ( left, op', right ) } ) OpExp2 SR  ) } )
+                        => PT.ExpMark { span = OpExp2_SPAN, tree = PT.ExpBin ( right, op', left ) } ) OpExp2 SR  ) } )
         ;
 
 OpExp2
         : OpExp3 ( "::" OpExp3 => ( OpExp3 ))* 
                 =>  (PT.ExpMark { span = FULL_SPAN, 
                                   tree = (List.foldr ( fn ( left, right)  
-                    => PT.ExpMark { span = OpExp3_SPAN, tree = PT.ExpListCons ( left, right ) } ) )OpExp3 SR   } )
+                    => PT.ExpMark { span = OpExp3_SPAN, tree = PT.ExpListCons ( right, left ) } ) )OpExp3 SR   } )
         ;
 
 OpExp3
@@ -195,7 +196,7 @@ OpExp3
                 | "-"  OpExp4 => ( ( Atom.atom "-" , OpExp4) ))* 
                     =>  (PT.ExpMark { span = FULL_SPAN, 
                                       tree = ( List.foldl ( fn ( ( op', left ), right ) 
-                        => PT.ExpMark {span = OpExp4_SPAN, tree = PT.ExpBin ( left, op', right ) } ) OpExp4 SR  ) } )
+                        => PT.ExpMark {span = OpExp4_SPAN, tree = PT.ExpBin ( right, op', left ) } ) OpExp4 SR  ) } )
         ;
 
 OpExp4
@@ -204,7 +205,7 @@ OpExp4
                 | "%"  OpExp5 => ( ( Atom.atom "%" , OpExp5) ))* 
                     => (PT.ExpMark { span = FULL_SPAN, 
                                      tree = ( List.foldl ( fn ( (op', left) , right ) 
-                        => PT.ExpMark {span = OpExp5_SPAN, tree = PT.ExpBin ( left, op', right ) } ) OpExp5 SR  ) } ) 
+                        => PT.ExpMark {span = OpExp5_SPAN, tree = PT.ExpBin ( right, op', left ) } ) OpExp5 SR  ) } ) 
         ;
 
 OpExp5
@@ -219,8 +220,8 @@ ApplyExp
                         (case SR of
                         [] => AtomicExp
                         | _ => ( PT.ExpMark { span = FULL_SPAN, 
-                                              tree = List.foldr ( fn (left, right) 
-                                    => PT.ExpMark {span = FULL_SPAN, tree = PT.ExpApp (left, right)} ) AtomicExp SR } ) )
+                                              tree = List.foldl ( fn (left, right) 
+                                    => PT.ExpMark {span = FULL_SPAN, tree = PT.ExpApp (right, left)} ) AtomicExp SR } ) )
         ;
 
 
@@ -232,7 +233,10 @@ AtomicExp
         | "(" ( Exp ("," Exp => (Exp))* => (Exp :: SR) )? ")" 
                     => ( case SR of
                         NONE => PT.ExpMark { span = FULL_SPAN, tree = PT.ExpTuple ([]) }
-                        | SOME a => PT.ExpMark { span = FULL_SPAN, tree = PT.ExpTuple (a) } )
+                        | (SOME a) => 
+                            (case (List.length (a)) of 
+                                1   => PT.ExpMark { span = FULL_SPAN, tree = List.nth (a, 0)}
+                                | _ => PT.ExpMark { span = FULL_SPAN, tree = PT.ExpTuple a } ) )
 
         | "{" Scope@([]) "}" => ( PT.ExpMark { span = FULL_SPAN, tree = PT.ExpScope Scope } )
         | "case" Exp "of" (MatchCase)+ "end" => ( PT.ExpMark { span = FULL_SPAN, tree = PT.ExpCase ( Exp, SR ) } )
@@ -240,11 +244,11 @@ AtomicExp
 
 Scope(env)
         (*This Exp is a Valbind if there is a scope after it*)
-        : Exp ( ";" Scope@( ( PT.BindExp Exp ) :: env ) )? 
+        : Exp ( ";" Scope@( List.concat ( [ env, [PT.BindExp Exp ] ] ) ) )? 
                 => ( case SR of
                    NONE  => ( env, Exp ) 
                    | SOME a => a ) 
-        | ValBind ";" Scope@( (ValBind) :: env ) => ( Scope )
+        | ValBind ";" Scope@( List.concat ( [ env, [ ValBind ] ] ) ) => ( Scope )
         ;
 
 MatchCase
