@@ -37,6 +37,13 @@ structure Context : sig
   (* get the error stream out of the context *)
     val errStrmOf : t -> Error.err_stream
 
+  (*Getters for different parts of the context*)
+    val tvEnvOf : t -> tyvar_env
+
+    val conEnvOf : t -> dcon_env
+
+    val varEnvOf : t -> var_env
+
   (* `setSpan (span, cxt)` returns a new context that is identical to `cxt` except that
    * its span is `span`.
    *)
@@ -106,6 +113,13 @@ structure Context : sig
     fun error (Cxt{errStrm, span, ...}, msg) = Error.errorAt(errStrm, span, msg)
 
     fun errStrmOf (Cxt{errStrm, ...}) = errStrm
+
+    fun tvEnvOf (Cxt{errStrm, span, tvEnv, ...}) =  tvEnv
+
+    fun conEnvOf (Cxt{errStrm, span, tvEnv, tycEnv, conEnv, ...}) = conEnv
+   
+    fun varEnvOf (Cxt{errStrm, span, tvEnv, tycEnv, conEnv, varEnv}) = varEnv
+
 
     fun setSpan (Cxt{errStrm, tvEnv, tycEnv, conEnv, varEnv, ...}, span) = Cxt{
             errStrm=errStrm, span=span,

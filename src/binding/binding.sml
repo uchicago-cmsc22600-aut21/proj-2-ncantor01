@@ -59,10 +59,7 @@ structure Binding : sig
       | repeats (fst :: rest) = (case (List.find (samewrap fst) rest) of
                                       NONE => (repeats rest)
                                     | SOME a => SOME a)
-
-    fun bindAllVar (cxt, []) = cxt
-      | bindAllVar (cxt, fst::rest) = C.bindVar (cxt, fst, BT.VarId.new fst )
-
+    
     fun analyze (errS, prog) = let
           (* report an unbound-identifier error *)
           fun unbound (cxt, kind, id) =
@@ -100,11 +97,12 @@ structure Binding : sig
                                 end
                     | NONE => let
                         val cxt' = C.new (C.errStrmOf cxt)
-                        val cxt' = bindAllVar (cxt', params)
-                        val cxt' = C.bindTyCon (cxt', tyid, BT.TycId.new tyid)
+                        val cxt' = C.setTVEnv (cxt', C.tvEnvOf cxt)
+                        val tyid' = BT.TycId.new tyid
+                        val cxt' = C.bindTyCon (cxt', tyid, tyid')
                         val castParams = List.map ( fn (x) => BT.TyVar.new x ) params 
 
-                        fun chkCons (cxt, [], cons') = (BT.DclData (BT.TycId.new tyid, castParams, List.rev cons'), cxt)
+                        fun chkCons (cxt, [], cons') = (BT.DclData (tyid', castParams, List.rev cons'), cxt)
                         | chkCons (cxt, con::cons, cons') = let
                             val (con', cxt) = chkCon (cxt, con)
                             in
@@ -114,8 +112,60 @@ structure Binding : sig
                                   chkCons (cxt', cons, [])
                                 end)
                           (*End of Case*)
-          and chkCon _ = raise Fail "TODO"
+            | chkDcl (cxt, PT.DclVal bind) = let
+              val (bind', cxt') = chkVdcl (cxt, bind)
+              in
+                (BT.DclVal ( bind' ), cxt')
+              end
+              
+          and chkCon ( cxt, PT.ConMark m ) = (chkWithMark BT.ConMark ( fn x => #1 (chkCon x)) (cxt, m), cxt)
+            | chkCon ( cxt, PT.Con (id, opt) ) = (case opt of
+                      NONE => (case C.findCon (cxt, id) of
+                          NONE => let
+                              val id' = BT.ConId.new id
+                            in
+                              (BT.Con ( id', NONE ), C.mergeConEnv (cxt , AtomMap.insert ( AtomMap.empty, id, id' ) ) )
+                            end
+                        | SOME a => raise Fail "TODO: dupe error" ) 
+                        (*End of case*)
+                      | SOME a => (case C.findCon (cxt, id) of
+                          NONE => let
+                              val id' = BT.ConId.new id
+                            in
+                              (BT.Con ( id', SOME (chkTy (cxt, a) )), C.mergeConEnv(cxt , AtomMap.insert (AtomMap.empty, id, id' )))
+                            end 
+                        | SOME A => raise Fail "TODO: dupe error")
+                          (*End of case*))
+                          (*End of case*)
+          and chkTy (cxt, PT.TyMark m ) = (chkWithMark BT.TyMark chkTy (cxt, m))
+            | chkTy (cxt, PT.TyVar t) = 
+                (case (C.findTyVar (cxt, t)) of
+                    NONE => raise Fail "TODO: unbound typevar"
+                  | SOME a => BT.TyVar a)
+            | chkTy (cxt, PT.TyFun (t1, t2)) = BT.TyFun ( chkTy (cxt, t1), chkTy (cxt, t2))
+            | chkTy (cxt, PT.TyCon (con, tyList)) = 
+                (case (C.findTyCon (cxt, con)) of
+                    NONE => raise Fail "TODO: unboud tycon"
+                  | SOME a => BT.TyCon ( a, List.map ( fn x => chkTy (cxt, x) ) tyList))
+            | chkTy (cxt, PT.TyTuple ( lst )) = BT.TyTuple ( List.map ( fn x => chkTy (cxt, x) ) lst )
+
+          and chkVdcl (cxt, PT.BindMark m) = (chkWithMark BT.BindMark ( fn x => #1 (chkVdcl x)) (cxt, m), cxt)
+            | chkVdcl (cxt, PT.BindExp exp) = ( BT.BindExp ( chkExp (cxt, exp)), cxt )
+            | chkVdcl (cxt, PT.BindVal ( pat, exp )) = let
+              val cxt' = C.new (C.errStrmOf cxt)
+              val cxt' = C.mergeConEnv (cxt', C.conEnvOf cxt)
+              val (pat', cxt') = chkPat (cxt', pat)
+              val exp' = chkExp (cxt, exp)
+                in
+              (BT.BindVal ( pat', exp' ), C.mergeVarEnv ( cxt, C.varEnvOf cxt' ))
+                end
+
+            | chkVdcl (cxt, PT.BindFun ( id, pats, exp )) = let
+              val cxt' = C.new (C.errStrmOf cxt)
+              val cxt' = C.mergeConEnv (cxt', C.conEnvOf cxt )
+              
           and chkExp _ = raise Fail "TODO"
+          and chkPat _ = raise Fail "TODO" 
           in
             chkProg (C.new errS, prog)
           end (* analyze *)
