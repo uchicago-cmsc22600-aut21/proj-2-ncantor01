@@ -51,6 +51,17 @@ structure Binding : sig
           in
             (wrap {span = span, tree = tree'}, cxt')
           end
+    
+    fun samewrap a b = Atom.same (a, b)
+
+    (*Checks if a list of atoms has any repeats*)  
+    fun repeats [] = NONE
+      | repeats (fst :: rest) = (case (List.find (samewrap fst) rest) of
+                                      NONE => (repeats rest)
+                                    | SOME a => SOME a)
+
+    fun bindAllVar (cxt, []) = cxt
+      | bindAllVar (cxt, fst::rest) = C.bindVar (cxt, fst, BT.VarId.new fst )
 
     fun analyze (errS, prog) = let
           (* report an unbound-identifier error *)
@@ -79,7 +90,31 @@ structure Binding : sig
                 in
                   chkDcls (cxt, dcls, [])
                 end
-          and chkDcl _ = raise Fail "TODO"
+          and chkDcl (cxt, PT.DclMark m) = (chkWithMark BT.DclMark (fn x => #1(chkDcl x)) (cxt,m), cxt)
+            | chkDcl (cxt, PT.DclData (tyid, params, cons)) = 
+                    (case (repeats params) of
+                      SOME a => let
+                        val _ = duplicate (cxt, "var", a)
+                                in
+                                  (BT.DclData (BT.TycId. new tyid, [], []), cxt)
+                                end
+                    | NONE => let
+                        val cxt' = C.new (C.errStrmOf cxt)
+                        val cxt' = bindAllVar (cxt', params)
+                        val cxt' = C.bindTyCon (cxt', tyid, BT.TycId.new tyid)
+                        val castParams = List.map ( fn (x) => BT.TyVar.new x ) params 
+
+                        fun chkCons (cxt, [], cons') = (BT.DclData (BT.TycId.new tyid, castParams, List.rev cons'), cxt)
+                        | chkCons (cxt, con::cons, cons') = let
+                            val (con', cxt) = chkCon (cxt, con)
+                            in
+                                chkCons (cxt, cons, con'::cons')
+                            end
+                                in
+                                  chkCons (cxt', cons, [])
+                                end)
+                          (*End of Case*)
+          and chkCon _ = raise Fail "TODO"
           and chkExp _ = raise Fail "TODO"
           in
             chkProg (C.new errS, prog)
