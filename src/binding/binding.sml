@@ -87,11 +87,11 @@ structure Binding : sig
                 in
                   chkDcls (cxt, dcls, [])
                 end
-          and chkDcl (cxt, PT.DclMark m) = (chkWithMark BT.DclMark (fn x => #1(chkDcl x)) (cxt,m), cxt)
+          and chkDcl (cxt, PT.DclMark m) = (chkWithMark' BT.DclMark chkDcl (cxt,m))
             | chkDcl (cxt, PT.DclData (tyid, params, cons)) = 
                     (case (repeats params) of
                       SOME a => let
-                        val _ = duplicate (cxt, "var", a)
+                        val _ = duplicate (cxt, "DclData", a)
                                 in
                                   (BT.DclData (BT.TycId. new tyid, [], []), cxt)
                                 end
@@ -118,7 +118,7 @@ structure Binding : sig
                 (BT.DclVal ( bind' ), cxt')
               end
               
-          and chkCon ( cxt, PT.ConMark m ) = (chkWithMark BT.ConMark ( fn x => #1 (chkCon x)) (cxt, m), cxt)
+          and chkCon ( cxt, PT.ConMark m ) = (chkWithMark' BT.ConMark chkCon (cxt,m))
             | chkCon ( cxt, PT.Con (id, opt) ) = (case opt of
                       NONE => (case C.findCon (cxt, id) of
                           NONE => let
@@ -126,30 +126,46 @@ structure Binding : sig
                             in
                               (BT.Con ( id', NONE ), C.mergeConEnv (cxt , AtomMap.insert ( AtomMap.empty, id, id' ) ) )
                             end
-                        | SOME a => raise Fail "TODO: dupe error" ) 
+                        | SOME b => let
+                            val _ = duplicate ( cxt, "con", id )
+                              in
+                            (BT.Con (BT.ConId.new id, NONE), cxt)
+                              end) 
                         (*End of case*)
                       | SOME a => (case C.findCon (cxt, id) of
                           NONE => let
                               val id' = BT.ConId.new id
                             in
                               (BT.Con ( id', SOME (chkTy (cxt, a) )), C.mergeConEnv(cxt , AtomMap.insert (AtomMap.empty, id, id' )))
-                            end 
-                        | SOME A => raise Fail "TODO: dupe error")
-                          (*End of case*))
+                            end
+                        | SOME b => let
+                            val _ = duplicate ( cxt, "Con", id )
+                              in
+                            (BT.Con (BT.ConId.new id, SOME (chkTy (cxt, a) )), cxt)
+                              end))
+                          (*End of case*)
                           (*End of case*)
           and chkTy (cxt, PT.TyMark m ) = (chkWithMark BT.TyMark chkTy (cxt, m))
             | chkTy (cxt, PT.TyVar t) = 
                 (case (C.findTyVar (cxt, t)) of
-                    NONE => raise Fail "TODO: unbound typevar"
+                    NONE => let
+                      val _ = unbound (cxt, "TyVar", t)
+                        in
+                      BT.TyVar (BT.TyVar.new t)
+                        end
                   | SOME a => BT.TyVar a)
             | chkTy (cxt, PT.TyFun (t1, t2)) = BT.TyFun ( chkTy (cxt, t1), chkTy (cxt, t2))
             | chkTy (cxt, PT.TyCon (con, tyList)) = 
                 (case (C.findTyCon (cxt, con)) of
-                    NONE => raise Fail "TODO: unboud tycon"
+                    NONE => let
+                      val _ = unbound ( cxt, "TyCon", con )
+                        in
+                      BT.TyCon (BT.TycId.new con, [])
+                        end
                   | SOME a => BT.TyCon ( a, List.map ( fn x => chkTy (cxt, x) ) tyList))
             | chkTy (cxt, PT.TyTuple ( lst )) = BT.TyTuple ( List.map ( fn x => chkTy (cxt, x) ) lst )
 
-          and chkVdcl (cxt, PT.BindMark m) = (chkWithMark BT.BindMark ( fn x => #1 (chkVdcl x)) (cxt, m), cxt)
+          and chkVdcl (cxt, PT.BindMark m) = chkWithMark' BT.BindMark chkVdcl (cxt, m)
             | chkVdcl (cxt, PT.BindExp exp) = ( BT.BindExp ( chkExp (cxt, exp)), cxt )
             | chkVdcl (cxt, PT.BindVal ( pat, exp )) = let
               val cxt' = C.new (C.errStrmOf cxt)
@@ -162,10 +178,136 @@ structure Binding : sig
 
             | chkVdcl (cxt, PT.BindFun ( id, pats, exp )) = let
               val cxt' = C.new (C.errStrmOf cxt)
-              val cxt' = C.mergeConEnv (cxt', C.conEnvOf cxt )
+              val cxt' = C.mergeConEnv (cxt', C.conEnvOf cxt)
+
+              fun chkPats (cxt, []) = ([], cxt') 
+                | chkPats (cxt, (fst::rest)) = let
+                  val (pat', cxt') = chkPat (cxt, fst)
+                  val _ = C.dump cxt'
+                    in
+                  (pat' :: #1 (chkPats (cxt', rest)), cxt')
+                    end
               
-          and chkExp _ = raise Fail "TODO"
-          and chkPat _ = raise Fail "TODO" 
+              val (pats', cxt') = chkPats (cxt', pats)
+              val id'  = BT.VarId.new id
+              val cxt' = C.bindVar ( cxt', id, id' )
+              val exp' = chkExp (cxt', exp)
+                in
+              (BT.BindFun ( id', List.rev pats', exp'), C.bindVar (cxt, id, id') )
+                end
+              
+              
+          and chkExp (cxt, PT.ExpMark m) = chkWithMark BT.ExpMark chkExp (cxt, m)
+            | chkExp (cxt, PT.ExpIf (exp1, exp2, exp3))
+                = BT.ExpIf (chkExp (cxt, exp1), chkExp (cxt, exp2), chkExp (cxt, exp3))
+            | chkExp (cxt, PT.ExpOrElse (exp1, exp2))
+                = BT.ExpOrElse ( chkExp (cxt, exp1), chkExp (cxt,exp2) )
+            | chkExp (cxt, PT.ExpAndAlso (exp1, exp2))
+                = BT.ExpAndAlso ( chkExp (cxt, exp1), chkExp (cxt,exp2) )
+            | chkExp (cxt, PT.ExpBin (exp1, id, exp2))
+                = BT.ExpBin ( chkExp (cxt, exp1), BT.VarId.new id, chkExp (cxt,exp2) )
+            | chkExp (cxt, PT.ExpApp (exp1, exp2))
+                = BT.ExpApp ( chkExp (cxt, exp1), chkExp (cxt,exp2) )
+            | chkExp (cxt, PT.ExpUn (id, exp1))
+                = BT.ExpUn ( BT.VarId.new id, chkExp (cxt,exp1) )
+            | chkExp (cxt, PT.ExpListCons (exp1, exp2))
+                = BT.ExpListCons ( chkExp (cxt, exp1), chkExp (cxt,exp2) )
+            | chkExp (cxt, PT.ExpTuple (exps))
+                = BT.ExpTuple ( List.map (fn x => chkExp ( cxt, x )) exps )
+            | chkExp (cxt, PT.ExpCase (exp, cases))
+                = BT.ExpCase ( chkExp (cxt, exp), List.map (fn x => chkRule ( cxt, x )) cases )
+            | chkExp (cxt, PT.ExpVar id) = (case (C.findVar (cxt, id)) of
+                                                   NONE => let
+                                                     val _ = unbound ( cxt, "ExpVar", id )
+                                                        in
+                                                      BT.ExpVar ( BT.VarId.new id )
+                                                        end
+                                                 | SOME a => BT.ExpVar ( a ))
+            | chkExp (cxt, PT.ExpCon id) = (case (C.findCon (cxt, id)) of
+                                                   NONE => let
+                                                     val _ = unbound ( cxt, "ExpCon", id )
+                                                        in
+                                                      BT.ExpCon ( BT.ConId.new id )
+                                                        end
+                                                 | SOME a => BT.ExpCon ( a ))
+            | chkExp (cxt, PT.ExpInt num) = BT.ExpInt num
+            | chkExp (cxt, PT.ExpStr str) = BT.ExpStr str
+            | chkExp (cxt, PT.ExpScope scope) = BT.ExpScope (chkScope (cxt, scope))
+
+          and chkPat (cxt, PT.PatMark m) = chkWithMark' BT.PatMark chkPat (cxt, m)
+            | chkPat (cxt, PT.PatVar id) = (case (C.findVar (cxt, id) ) of
+                                              NONE => let 
+                                                val id' = (BT.VarId.new id)
+                                                val cxt' = C.bindVar (cxt, id,
+                                                id')
+                                                val _ = C.dump cxt'
+                                                  in
+                                                (BT.PatVar id', cxt')
+                                                  end
+                                            | SOME a => let
+                                              val _ = duplicate (cxt, "PatVar", id)
+                                                in
+                                              (BT.PatVar ( BT.VarId.new id ), cxt)
+                                                end)
+            | chkPat (cxt, PT.PatCon ( id, opt )) 
+              = (case opt of
+                  NONE => (case C.findCon (cxt, id) of
+                                NONE => let
+                                  val _ = unbound (cxt, "PatCon", id)
+                                    in
+                                  (BT.PatCon (BT.ConId.new id, NONE), cxt)
+                                    end
+                              | SOME a => (BT.PatCon (a, NONE), cxt))
+                | SOME b => (case C.findCon (cxt, id) of
+                                NONE => let
+                                  val _ = unbound (cxt, "PatCon", id)
+                                    in
+                                  (BT.PatCon (BT.ConId.new id, NONE), cxt)
+                                    end
+                              | SOME a => let
+                                val (pat', cxt') = chkPat (cxt, b)
+                                  in
+                                (BT.PatCon (a, SOME pat'), cxt')
+                                  end))
+            | chkPat (cxt, PT.PatListCons (pat1, pat2)) = let
+                val (pat1', cxt') = chkPat (cxt, pat1)
+                val (pat2', cxt'') = chkPat (cxt, pat2)
+                val cxt' = C.mergeVarEnv (cxt', C.varEnvOf cxt'')
+                  in
+                (BT.PatListCons (pat1', pat2'), cxt')
+                  end
+            | chkPat (cxt, PT.PatTuple (lst)) = let
+                fun chkPats (cxt, []) = ([], cxt)
+                  | chkPats (cxt, fst::rest) = let
+                    val (fst', cxt') = chkPat (cxt, fst)
+                      in
+                    (fst' :: #1 (chkPats (cxt', rest)), cxt')
+                      end
+                val (lst, cxt') = chkPats (cxt, lst)
+                  in
+                (BT.PatTuple ( lst ), cxt')
+                  end
+
+            | chkPat (cxt, PT.PatWild) = (BT.PatWild, cxt)
+          and chkRule (cxt, PT.RuleMark m) =  chkWithMark BT.RuleMark chkRule (cxt, m)
+            | chkRule (cxt, PT.RuleCase (pat, scope) ) = let
+                val cxt' = C.new (C.errStrmOf cxt)
+                val cxt' = C.mergeConEnv ( cxt', C.conEnvOf cxt )
+                val (pat', cxt') = chkPat (cxt', pat)
+                val scope' = chkScope (C.mergeVarEnv (cxt, C.varEnvOf cxt'), scope)
+                  in
+                (BT.RuleCase (pat', scope'))
+                  end
+          and chkScope (cxt, (lst, exp)) = let
+            fun chkDcls ( cxt, [] ) = []
+              | chkDcls ( cxt, fst::rest ) = let 
+                  val (fst', cxt') = chkVdcl (cxt, fst) 
+                    in
+                  fst' :: (chkDcls (cxt', rest))
+                    end
+              in
+            (chkDcls (cxt, lst), chkExp (cxt, exp))
+              end
           in
             chkProg (C.new errS, prog)
           end (* analyze *)
