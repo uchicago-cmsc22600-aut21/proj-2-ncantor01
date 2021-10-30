@@ -180,12 +180,12 @@ structure Binding : sig
               val cxt' = C.new (C.errStrmOf cxt)
               val cxt' = C.mergeConEnv (cxt', C.conEnvOf cxt)
 
-              fun chkPats (cxt, []) = ([], cxt') 
+              fun chkPats (cxt, []) = ([], cxt)
                 | chkPats (cxt, (fst::rest)) = let
                   val (pat', cxt') = chkPat (cxt, fst)
-                  val _ = C.dump cxt'
+                  val (pats, cxt') = chkPats (cxt', rest)
                     in
-                  (pat' :: #1 (chkPats (cxt', rest)), cxt')
+                  (pat' :: pats, cxt')
                     end
               
               val (pats', cxt') = chkPats (cxt', pats)
@@ -240,7 +240,6 @@ structure Binding : sig
                                                 val id' = (BT.VarId.new id)
                                                 val cxt' = C.bindVar (cxt, id,
                                                 id')
-                                                val _ = C.dump cxt'
                                                   in
                                                 (BT.PatVar id', cxt')
                                                   end
