@@ -190,6 +190,7 @@ structure Binding : sig
               
               val (pats', cxt') = chkPats (cxt', pats)
               val id'  = BT.VarId.new id
+              val cxt' = C.mergeVarEnv ( cxt', C.varEnvOf cxt )
               val cxt' = C.bindVar ( cxt', id, id' )
               val exp' = chkExp (cxt', exp)
                 in
@@ -298,14 +299,16 @@ structure Binding : sig
                 (BT.RuleCase (pat', scope'))
                   end
           and chkScope (cxt, (lst, exp)) = let
-            fun chkDcls ( cxt, [] ) = []
+            fun chkDcls ( cxt, [] ) = ([], cxt) 
               | chkDcls ( cxt, fst::rest ) = let 
-                  val (fst', cxt') = chkVdcl (cxt, fst) 
+                  val (fst', cxt') = chkVdcl (cxt, fst)
+                  val (dcls, cxt') = chkDcls (cxt', rest) 
                     in
-                  fst' :: (chkDcls (cxt', rest))
+                  ( fst' :: dcls, cxt' )
                     end
+            val (dcls, cxt') = chkDcls ( cxt, lst )
               in
-            (chkDcls (cxt, lst), chkExp (cxt, exp))
+            (dcls, chkExp (cxt', exp))
               end
           in
             chkProg (C.new errS, prog)
