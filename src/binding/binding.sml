@@ -280,8 +280,9 @@ structure Binding : sig
                 fun chkPats (cxt, []) = ([], cxt)
                   | chkPats (cxt, fst::rest) = let
                     val (fst', cxt') = chkPat (cxt, fst)
+                    val (pats, cxt') = chkPats (cxt', rest)
                       in
-                    (fst' :: #1 (chkPats (cxt', rest)), cxt')
+                    (fst' :: pats, cxt')
                       end
                 val (lst, cxt') = chkPats (cxt, lst)
                   in
